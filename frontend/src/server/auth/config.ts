@@ -1,6 +1,7 @@
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
 import KeycloakProvider from "next-auth/providers/keycloak";
+import GitlabProvider from "next-auth/providers/gitlab";
 
 import { db } from "~/server/db";
 import {
@@ -39,6 +40,7 @@ declare module "next-auth" {
 export const authConfig = {
   providers: [
     KeycloakProvider,
+    GitlabProvider,
     /**
      * ...add more providers here.
      *
