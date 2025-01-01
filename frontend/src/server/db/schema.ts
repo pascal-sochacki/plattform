@@ -110,6 +110,24 @@ export const gitlabAccount = createTable(
   }),
 );
 
+export const project = createTable(
+  "project",
+  {
+    id: varchar("id", { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: varchar("user_id", { length: 255 })
+      .notNull()
+      .references(() => users.id),
+    name: varchar("name", { length: 255 }).notNull(),
+    source_id: varchar("source_id", { length: 255 }).notNull(),
+  },
+  (project) => ({
+    userIdIdx: index("project_user_id_idx").on(project.userId),
+  }),
+);
+
 export const accountsRelations = relations(accounts, ({ one }) => ({
   user: one(users, { fields: [accounts.userId], references: [users.id] }),
 }));

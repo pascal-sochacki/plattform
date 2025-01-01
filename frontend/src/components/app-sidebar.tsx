@@ -84,11 +84,11 @@ const data = {
 };
 
 export function AppSidebar({
-  Session,
+  session,
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" {...props} Session={Session}>
+    <Sidebar collapsible="icon" {...props} session={session}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
@@ -97,7 +97,11 @@ export function AppSidebar({
       </SidebarContent>
       <SidebarFooter>
         <NavUser
-          user={{ email: Session.user.email!, name: Session.user.name! }}
+          user={{
+            email: session.user.email!,
+            name: session.user.name!,
+            avatar: session.user.image!,
+          }}
         />
       </SidebarFooter>
       <SidebarRail />

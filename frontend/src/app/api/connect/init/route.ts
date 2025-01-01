@@ -38,18 +38,11 @@ export async function GET(request: Request) {
   const authParams = gitlabUrl.searchParams;
   const redirect_uri = "http://localhost:3000/api/connect";
 
-  const params = Object.assign(
-    {
-      response_type: "code",
-      client_id: env.AUTH_GITLAB_ID,
-      state: jwt,
-      redirect_uri,
-    },
-    Object.fromEntries(authParams),
-  );
-  for (const k in params) {
-    authParams.set(k, params[k]!);
-  }
+  authParams.set("response_type", "code");
+  authParams.set("client_id", env.AUTH_GITLAB_ID);
+  authParams.set("state", jwt);
+  authParams.set("scope", "read_user api");
+  authParams.set("redirect_uri", redirect_uri);
 
   cookieStore.set("gitlab-state", jwt);
   return NextResponse.redirect(gitlabUrl);

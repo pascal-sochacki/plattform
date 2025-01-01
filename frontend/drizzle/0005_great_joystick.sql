@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "project_user_id_idx" ON "plattform_project" USING btree ("user_id");
