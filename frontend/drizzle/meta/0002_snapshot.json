@@ -1,6 +1,6 @@
 {
-  "id": "0fca6c72-ceae-439b-8c3e-7550d72d718f",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "567af5b1-754c-4f21-81ab-901610179a4d",
+  "prevId": "b2ea569d-7f05-4db2-a7fc-f447de6a793f",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -128,8 +128,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "provider_account_id": {
-          "name": "provider_account_id",
+        "id": {
+          "name": "id",
           "type": "varchar(255)",
           "primaryKey": true,
           "notNull": true
@@ -204,7 +204,15 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {
+        "plattform_gitlab_account_user_id_unique": {
+          "name": "plattform_gitlab_account_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      }
     },
     "public.plattform_post": {
       "name": "plattform_post",

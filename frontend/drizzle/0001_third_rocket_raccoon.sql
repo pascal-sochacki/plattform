@@ -1,0 +1,1 @@
+ALTER TABLE "plattform_gitlab_account" RENAME COLUMN "provider_account_id" TO "id";

@@ -1,0 +1,1 @@
+ALTER TABLE "plattform_gitlab_account" ADD CONSTRAINT "plattform_gitlab_account_user_id_unique" UNIQUE("user_id");

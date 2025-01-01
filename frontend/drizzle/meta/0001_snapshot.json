@@ -1,6 +1,6 @@
 {
-  "id": "0fca6c72-ceae-439b-8c3e-7550d72d718f",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "b2ea569d-7f05-4db2-a7fc-f447de6a793f",
+  "prevId": "0fca6c72-ceae-439b-8c3e-7550d72d718f",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -128,8 +128,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "provider_account_id": {
-          "name": "provider_account_id",
+        "id": {
+          "name": "id",
           "type": "varchar(255)",
           "primaryKey": true,
           "notNull": true

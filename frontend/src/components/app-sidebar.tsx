@@ -3,19 +3,13 @@
 import * as React from "react";
 import {
   AudioWaveform,
-  BookOpen,
-  Bot,
   Command,
-  Frame,
   GalleryVerticalEnd,
-  Map,
-  PieChart,
   Settings2,
   SquareTerminal,
 } from "lucide-react";
 
 import { NavMain } from "~/components/nav-main";
-import { NavProjects } from "~/components/nav-projects";
 import { NavUser } from "~/components/nav-user";
 import { TeamSwitcher } from "~/components/team-switcher";
 import {
@@ -53,13 +47,13 @@ const data = {
   navMain: [
     {
       title: "Projects",
-      url: "/projects",
+      url: "/app/projects",
       icon: SquareTerminal,
       isActive: true,
       items: [
         {
           title: "Overview",
-          url: "/projects/overview",
+          url: "/app/projects/overview",
         },
       ],
     },
@@ -89,9 +83,12 @@ const data = {
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  Session,
+  ...props
+}: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" {...props} Session={Session}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
@@ -99,7 +96,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser
+          user={{ email: Session.user.email!, name: Session.user.name! }}
+        />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
