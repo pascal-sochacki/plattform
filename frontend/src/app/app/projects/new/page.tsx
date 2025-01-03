@@ -28,22 +28,18 @@ export default async function Page() {
     .from(gitlabAccount)
     .where(eq(gitlabAccount.userId, session.user.id));
 
-  let gitlabProjects: SimpleProjectSchema[] = [];
+  let gitlabProjectSelect = (
+    <div>Could not find Gitlab Projects. Try to login into gitlab</div>
+  );
   if (account.length > 0) {
     try {
+      let gitlabProjects: SimpleProjectSchema[] = [];
       const api = new Gitlab({
         oauthToken: account[0]!.access_token!,
       });
       gitlabProjects = await api.Projects.all({ owned: true, simple: true });
-      const exsitingProjects = await db
-        .select()
-        .from(project)
-        .where(eq(project.userId, session.user.id));
-      const ids = exsitingProjects.map((p) => p.source_id);
 
-      gitlabProjects = gitlabProjects.filter(
-        (p) => !ids.includes(p.id.toString()),
-      );
+      gitlabProjectSelect = <GitlabSelect gitlabProjects={gitlabProjects} />;
     } catch (e) {
       console.error(e);
     }
@@ -59,9 +55,7 @@ export default async function Page() {
           <CardTitle>Import Git Repository</CardTitle>
           <CardDescription>Import Git Repository as Project</CardDescription>
         </CardHeader>
-        <CardContent>
-          <GitlabSelect gitlabProjects={gitlabProjects} />
-        </CardContent>
+        <CardContent>{gitlabProjectSelect}</CardContent>
         <CardFooter className="gap-4"></CardFooter>
       </Card>
     </div>

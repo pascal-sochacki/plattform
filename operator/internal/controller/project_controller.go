@@ -200,10 +200,10 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	meta.SetStatusCondition(&project.Status.Conditions, metav1.Condition{Type: typeAvailableProject,
 		Status: metav1.ConditionTrue, Reason: "Reconciling",
-		Message: fmt.Sprintf("Project for custom resource (%s) created successfully", project.Name)})
+		Message: "Project created successfully"})
 
 	if err := r.Status().Update(ctx, project); err != nil {
-		log.Error(err, "Failed to update Project status")
+		log.Error(err, "Failed to update Project")
 		return ctrl.Result{}, err
 	}
 
