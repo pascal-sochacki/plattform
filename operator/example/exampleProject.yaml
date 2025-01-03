@@ -1,0 +1,6 @@
+apiVersion: core.plattf0rm.de/v1alpha1
+kind: Project
+metadata:
+  name: test-project
+spec:
+  source: test
