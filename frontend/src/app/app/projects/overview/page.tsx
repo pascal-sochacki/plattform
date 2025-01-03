@@ -5,27 +5,7 @@ import { Card, CardFooter, CardHeader } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 import { auth } from "~/server/auth";
 import * as k8s from "@kubernetes/client-node";
-
-export interface ProjectObject extends k8s.KubernetesObject {
-  status: ProjectStatus;
-  spec: ProjectSpec;
-}
-
-export interface ProjectSpec {
-  source: string;
-}
-
-export interface ProjectStatus {
-  conditions: ProjectStatusCondition[];
-}
-
-export interface ProjectStatusCondition {
-  type: string;
-  lastTransitionTime: string;
-  message: string;
-  reason: string;
-  status: string;
-}
+import { type ProjectObject } from "~/server/api/schema";
 
 export default async function Page() {
   const session = await auth();

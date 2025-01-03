@@ -1,12 +1,38 @@
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { CreateProjectSchema } from "../schema";
+import { CreateProjectSchema, type ProjectObject } from "../schema";
 import { db } from "~/server/db";
 import { gitlabAccount } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { Gitlab } from "@gitbeaker/rest";
 import * as k8s from "@kubernetes/client-node";
 
 export const projectRouter = createTRPCRouter({
+  delete: protectedProcedure
+    .input(z.object({ name: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const kc = new k8s.KubeConfig();
+      kc.loadFromDefault();
+      const customObjectsApi = kc.makeApiClient(k8s.CustomObjectsApi);
+
+      const project = (await customObjectsApi.getClusterCustomObject({
+        name: input.name,
+        group: "core.plattf0rm.de",
+        version: "v1alpha1",
+        plural: "projects",
+      })) as ProjectObject;
+      const userId = project.metadata?.labels?.user ?? "";
+      if (userId != ctx.session.user.id) {
+        return;
+      }
+      await customObjectsApi.deleteClusterCustomObject({
+        name: input.name,
+        group: "core.plattf0rm.de",
+        version: "v1alpha1",
+        plural: "projects",
+      });
+    }),
+
   create: protectedProcedure
     .input(CreateProjectSchema)
     .mutation(async ({ ctx, input }) => {
