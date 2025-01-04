@@ -1,0 +1,19 @@
+name: e2e
+on:
+  pull_request: {}
+defaults:
+  run:
+    working-directory: operator
+
+jobs:
+  e2e:
+    name: e2e
+    needs: check_docs_only
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+      - run: make test-e2e

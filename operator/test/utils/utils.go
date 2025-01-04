@@ -32,6 +32,9 @@ const (
 
 	certmanagerVersion = "v1.14.4"
 	certmanagerURLTmpl = "https://github.com/jetstack/cert-manager/releases/download/%s/cert-manager.yaml"
+
+	tektonVersion = "v0.66.0"
+	tektonURLTmpl = "https://storage.googleapis.com/tekton-releases/pipeline/previous/%s/release.yaml"
 )
 
 func warnError(err error) {
@@ -41,6 +44,13 @@ func warnError(err error) {
 // InstallPrometheusOperator installs the prometheus Operator to be used to export the enabled metrics.
 func InstallPrometheusOperator() error {
 	url := fmt.Sprintf(prometheusOperatorURL, prometheusOperatorVersion)
+	cmd := exec.Command("kubectl", "create", "-f", url)
+	_, err := Run(cmd)
+	return err
+}
+
+func InstallTektonOperator() error {
+	url := fmt.Sprintf(tektonURLTmpl, tektonVersion)
 	cmd := exec.Command("kubectl", "create", "-f", url)
 	_, err := Run(cmd)
 	return err
@@ -78,6 +88,14 @@ func UninstallPrometheusOperator() {
 // UninstallCertManager uninstalls the cert manager
 func UninstallCertManager() {
 	url := fmt.Sprintf(certmanagerURLTmpl, certmanagerVersion)
+	cmd := exec.Command("kubectl", "delete", "-f", url)
+	if _, err := Run(cmd); err != nil {
+		warnError(err)
+	}
+}
+
+func UninstallTektonOperator() {
+	url := fmt.Sprintf(tektonURLTmpl, tektonVersion)
 	cmd := exec.Command("kubectl", "delete", "-f", url)
 	if _, err := Run(cmd); err != nil {
 		warnError(err)
