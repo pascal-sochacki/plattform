@@ -74,6 +74,7 @@ SHELL = /usr/bin/env bash -o pipefail
 
 export TOOLS_DIR = tools/bin
 export SCRIPTS_DIR = tools/scripts
+export K8S_VERSION = 1.30.0
 
 export KIND_CLUSTER := osdk-test
 
