@@ -67,7 +67,7 @@ export function GitlabSelect(props: { gitlabProjects: SimpleProjectSchema[] }) {
           <Button
             className="w-full"
             variant={"secondary"}
-            onClick={() => router.back()}
+            onClick={() => router.push("/app/projects/overview")}
           >
             Back
           </Button>
