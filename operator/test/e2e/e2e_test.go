@@ -53,7 +53,7 @@ var _ = Describe("controller", Ordered, func() {
 		utils.UninstallCertManager()
 
 		By("uninstalling the tekton bundle")
-		utils.UninstallCertManager()
+		utils.UninstallTektonOperator()
 
 		By("removing manager namespace")
 		cmd := exec.Command("kubectl", "delete", "ns", namespace)
