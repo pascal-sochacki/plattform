@@ -12,5 +12,6 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
-          go-version-file: "go.mod"
+          go-version-file: "operator/go.mod"
       - run: make test-e2e
+        working-directory: operator
