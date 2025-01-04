@@ -18,9 +18,11 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -28,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	corev1alpha1 "github.com/pascal-sochacki/plattform/api/v1alpha1"
+	"github.com/pascal-sochacki/plattform/internal/controller/thirdparty"
 )
 
 var _ = Describe("Project Controller", func() {
@@ -51,7 +54,6 @@ var _ = Describe("Project Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
@@ -77,8 +79,29 @@ var _ = Describe("Project Controller", func() {
 				NamespacedName: typeNamespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
+
+			By("Checking if Namespace was successfully created in the reconciliation")
+			Eventually(func() error {
+				found := &v1.Namespace{}
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name: resourceName,
+				}, found)
+			}, time.Minute, time.Second).Should(Succeed())
+
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking if Task was successfully created in the reconciliation")
+			Eventually(func() error {
+				found := &thirdparty.Task{}
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Namespace: resourceName,
+					Name:      resourceName,
+				}, found)
+			}, time.Minute, time.Second).Should(Succeed())
+
 		})
 	})
 })

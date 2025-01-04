@@ -1,4 +1,5 @@
 // +k8s:deepcopy-gen=package
+// +kubebuilder:skip
 package thirdparty
 
 import (
