@@ -1,13 +1,11 @@
 name: e2e
 on:
   pull_request: {}
-defaults:
-  run:
-    working-directory: operator
 
 jobs:
   e2e:
     name: e2e
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
