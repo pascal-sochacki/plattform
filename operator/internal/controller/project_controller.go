@@ -202,7 +202,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	foundTask := &thirdparty.Task{}
 	err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: foundNamespace.Name}, foundTask)
 	if err != nil && apierrors.IsNotFound(err) {
-		ns, err := r.TaskForProject(project, foundNamespace)
+		task, err := r.TaskForProject(project, foundNamespace)
 		if err != nil {
 			log.Error(err, "Failed to define new Task resource for Project")
 
@@ -219,8 +219,17 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrl.Result{}, err
 		}
 		log.Info("Creating a new Task", "Task.Name", project.Name)
-		if err = r.Create(ctx, ns); err != nil {
-			log.Error(err, "Failed to create new Task", "Task.Name", ns.Name)
+		if err = r.Create(ctx, task); err != nil {
+			log.Error(err, "Failed to create new Task", "Task.Name", task.Name)
+			meta.SetStatusCondition(&project.Status.Conditions, metav1.Condition{Type: typeAvailableProject,
+				Status: metav1.ConditionFalse, Reason: "Reconciling",
+				Message: fmt.Sprintf("Failed to create Task for Project (%s)", project.Name)})
+
+			if err := r.Status().Update(ctx, project); err != nil {
+				log.Error(err, "Failed to update Project status")
+				return ctrl.Result{}, err
+			}
+
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
@@ -275,7 +284,7 @@ func (r *ProjectReconciler) TaskForProject(project *corev1alpha1.Project, namesp
 					Name:  "echo",
 					Image: "alpine",
 					Script: `#!/bin/sh
-echo "Hello World"`,
+		echo "Hello World"`,
 				},
 			},
 		},
