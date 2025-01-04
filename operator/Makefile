@@ -72,6 +72,11 @@ CONTAINER_TOOL ?= docker
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
+export TOOLS_DIR = tools/bin
+export SCRIPTS_DIR = tools/scripts
+
+export KIND_CLUSTER := osdk-test
+
 .PHONY: all
 all: build
 
@@ -114,9 +119,18 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
 
+.PHONY: dev-install
+dev-install::
+	$(SCRIPTS_DIR)/fetch kind 0.23.0
+	$(SCRIPTS_DIR)/fetch kubectl $(K8S_VERSION) # Install kubectl AFTER envtest because envtest includes its own kubectl binary
+
+.PHONY: cluster-create
+cluster-create::
+	[[ "`$(TOOLS_DIR)/kind get clusters`" =~ "$(KIND_CLUSTER)" ]] || $(TOOLS_DIR)/kind create cluster --image="kindest/node:v$(K8S_VERSION)" --name $(KIND_CLUSTER)
+
 # Utilize Kind or modify the e2e tests to load the image locally, enabling compatibility with other vendors.
 .PHONY: test-e2e  # Run the e2e tests against a Kind k8s instance that is spun up.
-test-e2e:
+test-e2e:: dev-install cluster-create
 	go test ./test/e2e/ -v -ginkgo.v
 
 .PHONY: lint
