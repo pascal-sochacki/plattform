@@ -1,5 +1,6 @@
 "use client";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import {
   Popover,
@@ -9,8 +10,9 @@ import {
 import { Separator } from "~/components/ui/separator";
 import { api } from "~/trpc/react";
 
-export default function ProjectHeader({ name }: { name: string }) {
+export default function ProjectHeader() {
   const router = useRouter();
+  const params = useParams<{ name: string }>();
   const deleteProject = api.project.delete.useMutation({
     onSuccess: () => {
       router.push("/app/projects/overview");
@@ -18,17 +20,23 @@ export default function ProjectHeader({ name }: { name: string }) {
   });
   return (
     <div>
-      <h1 className="p-2">{name}</h1>
-      <div className="flex flex-row-reverse p-2">
+      <h1 className="p-2">Project: {params.name}</h1>
+      <div className="flex gap-3 p-2">
+        <Link href={`/app/projects/${params.name}/pipelines`}>
+          <Button>Pipelines</Button>
+        </Link>
+        <Button>Logs</Button>
+        <Button>Metrics</Button>
+        <Button>Traces</Button>
         <Popover>
-          <PopoverTrigger>
+          <PopoverTrigger className="ml-auto">
             <Button variant={"destructive"}>Delete Project</Button>
           </PopoverTrigger>
           <PopoverContent>
             <div>Are you sure?</div>
             <Button
               variant={"destructive"}
-              onClick={() => void deleteProject.mutate({ name: name })}
+              onClick={() => void deleteProject.mutate({ name: params.name })}
             >
               Yes!
             </Button>

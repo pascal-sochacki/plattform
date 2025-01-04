@@ -35,6 +35,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	corev1alpha1 "github.com/pascal-sochacki/plattform/api/v1alpha1"
+	"github.com/pascal-sochacki/plattform/internal/controller/thirdparty"
 )
 
 // Definitions to manage status conditions
@@ -167,8 +168,8 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 		return ctrl.Result{}, nil
 	}
-	found := &v1.Namespace{}
-	err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: project.Namespace}, found)
+	foundNamespace := &v1.Namespace{}
+	err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: project.Namespace}, foundNamespace)
 	if err != nil && apierrors.IsNotFound(err) {
 		ns, err := r.NamepsaceForProject(project)
 		if err != nil {
@@ -198,6 +199,37 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	foundTask := &thirdparty.Task{}
+	err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: foundNamespace.Name}, foundTask)
+	if err != nil && apierrors.IsNotFound(err) {
+		ns, err := r.TaskForProject(project, foundNamespace)
+		if err != nil {
+			log.Error(err, "Failed to define new Task resource for Project")
+
+			// The following implementation will update the status
+			meta.SetStatusCondition(&project.Status.Conditions, metav1.Condition{Type: typeAvailableProject,
+				Status: metav1.ConditionFalse, Reason: "Reconciling",
+				Message: fmt.Sprintf("Failed to create Task for the custom resource (%s): (%s)", project.Name, err)})
+
+			if err := r.Status().Update(ctx, project); err != nil {
+				log.Error(err, "Failed to update Project status")
+				return ctrl.Result{}, err
+			}
+
+			return ctrl.Result{}, err
+		}
+		log.Info("Creating a new Task", "Task.Name", project.Name)
+		if err = r.Create(ctx, ns); err != nil {
+			log.Error(err, "Failed to create new Task", "Task.Name", ns.Name)
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get Task")
+		// Let's return the error for the reconciliation be re-trigged again
+		return ctrl.Result{}, err
+	}
+
 	meta.SetStatusCondition(&project.Status.Conditions, metav1.Condition{Type: typeAvailableProject,
 		Status: metav1.ConditionTrue, Reason: "Reconciling",
 		Message: "Project created successfully"})
@@ -209,6 +241,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	return ctrl.Result{}, nil
 }
+
 func (r *ProjectReconciler) NamepsaceForProject(project *corev1alpha1.Project) (*v1.Namespace, error) {
 	ls := labelsForProject()
 
@@ -225,6 +258,35 @@ func (r *ProjectReconciler) NamepsaceForProject(project *corev1alpha1.Project) (
 		return nil, err
 	}
 	return ns, nil
+}
+
+func (r *ProjectReconciler) TaskForProject(project *corev1alpha1.Project, namespace *v1.Namespace) (*thirdparty.Task, error) {
+	ls := labelsForProject()
+
+	task := &thirdparty.Task{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      project.Name,
+			Namespace: namespace.Name,
+			Labels:    ls,
+		},
+		Spec: thirdparty.TaskSpec{
+			Steps: []thirdparty.Step{
+				{
+					Name:  "echo",
+					Image: "alpine",
+					Script: `#!/bin/sh
+echo "Hello World"`,
+				},
+			},
+		},
+	}
+
+	// Set the ownerRef for the Deployment
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/
+	if err := ctrl.SetControllerReference(project, task, r.Scheme); err != nil {
+		return nil, err
+	}
+	return task, nil
 }
 
 // finalizeMemcached will perform the required operations before delete the CR.

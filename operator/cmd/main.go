@@ -37,6 +37,7 @@ import (
 
 	corev1alpha1 "github.com/pascal-sochacki/plattform/api/v1alpha1"
 	"github.com/pascal-sochacki/plattform/internal/controller"
+	"github.com/pascal-sochacki/plattform/internal/controller/thirdparty"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -46,6 +47,7 @@ var (
 )
 
 func init() {
+	thirdparty.AddToScheme(scheme)
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(corev1alpha1.AddToScheme(scheme))
