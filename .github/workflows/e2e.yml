@@ -13,5 +13,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: "operator/go.mod"
+          cache-dependency-path: |
+            operator/go.sum
       - run: make test-e2e
         working-directory: operator
