@@ -97,12 +97,8 @@
           "name": "plattform_account_user_id_plattform_user_id_fk",
           "tableFrom": "plattform_account",
           "tableTo": "plattform_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -110,10 +106,7 @@
       "compositePrimaryKeys": {
         "plattform_account_provider_provider_account_id_pk": {
           "name": "plattform_account_provider_provider_account_id_pk",
-          "columns": [
-            "provider",
-            "provider_account_id"
-          ]
+          "columns": ["provider", "provider_account_id"]
         }
       },
       "uniqueConstraints": {}
@@ -193,12 +186,8 @@
           "name": "plattform_gitlab_account_user_id_plattform_user_id_fk",
           "tableFrom": "plattform_gitlab_account",
           "tableTo": "plattform_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -208,9 +197,7 @@
         "plattform_gitlab_account_user_id_unique": {
           "name": "plattform_gitlab_account_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id"
-          ]
+          "columns": ["user_id"]
         }
       }
     },
@@ -298,12 +285,8 @@
           "name": "plattform_post_created_by_plattform_user_id_fk",
           "tableFrom": "plattform_post",
           "tableTo": "plattform_user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -340,12 +323,8 @@
           "name": "plattform_project_user_id_plattform_user_id_fk",
           "tableFrom": "plattform_project",
           "tableTo": "plattform_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -355,9 +334,7 @@
         "plattform_project_user_id_unique": {
           "name": "plattform_project_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id"
-          ]
+          "columns": ["user_id"]
         }
       }
     },
@@ -406,12 +383,8 @@
           "name": "plattform_session_user_id_plattform_user_id_fk",
           "tableFrom": "plattform_session",
           "tableTo": "plattform_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -488,10 +461,7 @@
       "compositePrimaryKeys": {
         "plattform_verification_token_identifier_token_pk": {
           "name": "plattform_verification_token_identifier_token_pk",
-          "columns": [
-            "identifier",
-            "token"
-          ]
+          "columns": ["identifier", "token"]
         }
       },
       "uniqueConstraints": {}
