@@ -87,22 +87,24 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// Let's just set the status as Unknown when no status is available
 	if project.Status.Conditions == nil || len(project.Status.Conditions) == 0 {
-		meta.SetStatusCondition(&project.Status.Conditions, metav1.Condition{Type: typeAvailableProject, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "Starting reconciliation"})
-		if err = r.Status().Update(ctx, project); err != nil {
+		condition := metav1.Condition{
+			Type:    typeAvailableProject,
+			Status:  metav1.ConditionUnknown,
+			Reason:  "Reconciling",
+			Message: "Starting reconciliation",
+		}
+
+		if err = r.UpdateCondition(ctx, project, condition); err != nil {
 			log.Error(err, "Failed to update Project status")
 			return ctrl.Result{}, err
 		}
 
-		// Let's re-fetch the project Custom Resource after updating the status
-		// so that we have the latest state of the resource on the cluster and we will avoid
-		// raising the error "the object has been modified, please apply
-		// your changes to the latest version and try again" which would re-trigger the reconciliation
-		// if we try to update it again in the following operations
 		if err := r.Get(ctx, req.NamespacedName, project); err != nil {
 			log.Error(err, "Failed to re-fetch project")
 			return ctrl.Result{}, err
 		}
 	}
+
 	if !controllerutil.ContainsFinalizer(project, projectFinalizer) {
 		log.Info("Adding Finalizer for Project")
 		if ok := controllerutil.AddFinalizer(project, projectFinalizer); !ok {
@@ -122,11 +124,14 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if controllerutil.ContainsFinalizer(project, projectFinalizer) {
 			log.Info("Performing Finalizer Operations for Project before delete CR")
 			// Let's add here a status "Downgrade" to reflect that this resource began its process to be terminated.
-			meta.SetStatusCondition(&project.Status.Conditions, metav1.Condition{Type: typeDegradedProject,
-				Status: metav1.ConditionUnknown, Reason: "Finalizing",
-				Message: fmt.Sprintf("Performing finalizer operations for the custom resource: %s ", project.Name)})
+			condition := metav1.Condition{
+				Type:    typeDegradedProject,
+				Status:  metav1.ConditionUnknown,
+				Reason:  "Finalizing",
+				Message: fmt.Sprintf("Performing finalizer operations for the custom resource: %s ", project.Name),
+			}
 
-			if err := r.Status().Update(ctx, project); err != nil {
+			if err := r.UpdateCondition(ctx, project, condition); err != nil {
 				log.Error(err, "Failed to update Project status")
 				return ctrl.Result{}, err
 			}
@@ -145,11 +150,15 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				log.Error(err, "Failed to re-fetch project")
 				return ctrl.Result{}, err
 			}
-			meta.SetStatusCondition(&project.Status.Conditions, metav1.Condition{Type: typeDegradedProject,
-				Status: metav1.ConditionTrue, Reason: "Finalizing",
-				Message: fmt.Sprintf("Finalizer operations for custom resource %s name were successfully accomplished", project.Name)})
 
-			if err := r.Status().Update(ctx, project); err != nil {
+			condition = metav1.Condition{
+				Type:    typeDegradedProject,
+				Status:  metav1.ConditionTrue,
+				Reason:  "Finalizing",
+				Message: fmt.Sprintf("Finalizer operations for custom resource %s name were successfully accomplished", project.Name),
+			}
+
+			if err := r.UpdateCondition(ctx, project, condition); err != nil {
 				log.Error(err, "Failed to update Project status")
 				return ctrl.Result{}, err
 			}
@@ -171,84 +180,66 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	foundNamespace := &v1.Namespace{}
 	err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: project.Namespace}, foundNamespace)
 	if err != nil && apierrors.IsNotFound(err) {
-		ns, err := r.NamepsaceForProject(project)
-		if err != nil {
-			log.Error(err, "Failed to define new Namespace resource for Project")
-
-			// The following implementation will update the status
-			meta.SetStatusCondition(&project.Status.Conditions, metav1.Condition{Type: typeAvailableProject,
-				Status: metav1.ConditionFalse, Reason: "Reconciling",
-				Message: fmt.Sprintf("Failed to create Namespace for the custom resource (%s): (%s)", project.Name, err)})
-
-			if err := r.Status().Update(ctx, project); err != nil {
-				log.Error(err, "Failed to update Project status")
-				return ctrl.Result{}, err
-			}
-
-			return ctrl.Result{}, err
-		}
-		log.Info("Creating a new Namespace", "Deployment.Name", project.Name)
-		if err = r.Create(ctx, ns); err != nil {
-			log.Error(err, "Failed to create new Namespace", "Namespace.Name", ns.Name)
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+		return r.CreateNamespaceForProject(ctx, project)
 	} else if err != nil {
-		log.Error(err, "Failed to get Deployment")
-		// Let's return the error for the reconciliation be re-trigged again
+		log.Error(err, "Failed to get Namespace")
 		return ctrl.Result{}, err
 	}
 
 	foundTask := &thirdparty.Task{}
 	err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: foundNamespace.Name}, foundTask)
 	if err != nil && apierrors.IsNotFound(err) {
-		task, err := r.TaskForProject(project, foundNamespace)
-		if err != nil {
-			log.Error(err, "Failed to define new Task resource for Project")
-
-			// The following implementation will update the status
-			meta.SetStatusCondition(&project.Status.Conditions, metav1.Condition{Type: typeAvailableProject,
-				Status: metav1.ConditionFalse, Reason: "Reconciling",
-				Message: fmt.Sprintf("Failed to create Task for the custom resource (%s): (%s)", project.Name, err)})
-
-			if err := r.Status().Update(ctx, project); err != nil {
-				log.Error(err, "Failed to update Project status")
-				return ctrl.Result{}, err
-			}
-
-			return ctrl.Result{}, err
-		}
-		log.Info("Creating a new Task", "Task.Name", project.Name)
-		if err = r.Create(ctx, task); err != nil {
-			log.Error(err, "Failed to create new Task", "Task.Name", task.Name)
-			meta.SetStatusCondition(&project.Status.Conditions, metav1.Condition{Type: typeAvailableProject,
-				Status: metav1.ConditionFalse, Reason: "Reconciling",
-				Message: fmt.Sprintf("Failed to create Task for Project (%s)", project.Name)})
-
-			if err := r.Status().Update(ctx, project); err != nil {
-				log.Error(err, "Failed to update Project status")
-				return ctrl.Result{}, err
-			}
-
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+		return r.CreateTaskForProject(ctx, project, foundNamespace)
 	} else if err != nil {
 		log.Error(err, "Failed to get Task")
-		// Let's return the error for the reconciliation be re-trigged again
 		return ctrl.Result{}, err
 	}
 
-	meta.SetStatusCondition(&project.Status.Conditions, metav1.Condition{Type: typeAvailableProject,
+	condition := metav1.Condition{Type: typeAvailableProject,
 		Status: metav1.ConditionTrue, Reason: "Reconciling",
-		Message: "Project created successfully"})
+		Message: "Project created successfully"}
 
-	if err := r.Status().Update(ctx, project); err != nil {
+	if err := r.UpdateCondition(ctx, project, condition); err != nil {
 		log.Error(err, "Failed to update Project")
 		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *ProjectReconciler) UpdateCondition(ctx context.Context, project *corev1alpha1.Project, condition metav1.Condition) error {
+	meta.SetStatusCondition(&project.Status.Conditions, condition)
+	return r.Status().Update(ctx, project)
+}
+
+func (r *ProjectReconciler) CreateNamespaceForProject(ctx context.Context, project *corev1alpha1.Project) (ctrl.Result, error) {
+	log := log.FromContext(ctx)
+	ns, err := r.NamepsaceForProject(project)
+	if err != nil {
+		log.Error(err, "Failed to define new Namespace resource for Project")
+
+		// The following implementation will update the status
+		condition := metav1.Condition{
+			Type:    typeAvailableProject,
+			Status:  metav1.ConditionFalse,
+			Reason:  "Reconciling",
+			Message: fmt.Sprintf("Failed to create Namespace for the custom resource (%s): (%s)", project.Name, err),
+		}
+
+		if err := r.UpdateCondition(ctx, project, condition); err != nil {
+			log.Error(err, "Failed to update Project status")
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, err
+	}
+	log.Info("Creating a new Namespace", "Deployment.Name", project.Name)
+	if err = r.Create(ctx, ns); err != nil {
+		log.Error(err, "Failed to create new Namespace", "Namespace.Name", ns.Name)
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+
 }
 
 func (r *ProjectReconciler) NamepsaceForProject(project *corev1alpha1.Project) (*v1.Namespace, error) {
@@ -261,12 +252,36 @@ func (r *ProjectReconciler) NamepsaceForProject(project *corev1alpha1.Project) (
 		},
 	}
 
-	// Set the ownerRef for the Deployment
-	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/
 	if err := ctrl.SetControllerReference(project, ns, r.Scheme); err != nil {
 		return nil, err
 	}
 	return ns, nil
+}
+func (r *ProjectReconciler) CreateTaskForProject(ctx context.Context, project *corev1alpha1.Project, namespace *v1.Namespace) (ctrl.Result, error) {
+	log := log.FromContext(ctx)
+	task, err := r.TaskForProject(project, namespace)
+	if err != nil {
+		log.Error(err, "Failed to define new Task resource for Project")
+		return ctrl.Result{}, err
+	}
+	log.Info("Creating a new Task", "Task.Name", project.Name)
+	if err = r.Create(ctx, task); err != nil {
+		log.Error(err, "Failed to create new Task", "Task.Name", task.Name)
+		condition := metav1.Condition{
+			Type:    typeAvailableProject,
+			Status:  metav1.ConditionFalse,
+			Reason:  "Reconciling",
+			Message: fmt.Sprintf("Failed to create Task for Project (%s)", project.Name),
+		}
+
+		if err := r.UpdateCondition(ctx, project, condition); err != nil {
+			log.Error(err, "Failed to update Project status")
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 }
 
 func (r *ProjectReconciler) TaskForProject(project *corev1alpha1.Project, namespace *v1.Namespace) (*thirdparty.Task, error) {
@@ -290,8 +305,6 @@ func (r *ProjectReconciler) TaskForProject(project *corev1alpha1.Project, namesp
 		},
 	}
 
-	// Set the ownerRef for the Deployment
-	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/
 	if err := ctrl.SetControllerReference(project, task, r.Scheme); err != nil {
 		return nil, err
 	}

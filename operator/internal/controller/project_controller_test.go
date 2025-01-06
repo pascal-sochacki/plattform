@@ -18,7 +18,6 @@ package controller
 
 import (
 	"context"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -40,21 +39,20 @@ var _ = Describe("Project Controller", func() {
 		ctx := context.Background()
 
 		typeNamespacedName := types.NamespacedName{
-			Name:      resourceName,
-			Namespace: "default", // TODO(user):Modify as needed
+			Name: resourceName,
 		}
-		project := &corev1alpha1.Project{}
+		resource := &corev1alpha1.Project{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      resourceName,
+				Namespace: "default",
+			},
+		}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind Project")
+			project := &corev1alpha1.Project{}
 			err := k8sClient.Get(ctx, typeNamespacedName, project)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &corev1alpha1.Project{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      resourceName,
-						Namespace: "default",
-					},
-				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
 		})
@@ -80,27 +78,49 @@ var _ = Describe("Project Controller", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Checking if Namespace was successfully created in the reconciliation")
-			Eventually(func() error {
-				found := &v1.Namespace{}
-				return k8sClient.Get(ctx, types.NamespacedName{
-					Name: resourceName,
-				}, found)
-			}, time.Minute, time.Second).Should(Succeed())
+			By("Checking if Condition was successfully updated in the reconciliation")
+			project := &corev1alpha1.Project{}
+			err = k8sClient.Get(ctx, typeNamespacedName, project)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(project.Status.Conditions)).To(Equal(1))
+			Expect(project.Status.Conditions[0].Message).To(Equal("Starting reconciliation"))
+
+			By("Checking if Finalizer was successfully updated in the reconciliation")
+			finalizer := project.GetFinalizers()
+			Expect(len(finalizer)).To(Equal(1))
+			Expect(finalizer[0]).To(Equal("core.plattf0rm.de/finalizer"))
 
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Checking if Task was successfully created in the reconciliation")
-			Eventually(func() error {
-				found := &thirdparty.Task{}
-				return k8sClient.Get(ctx, types.NamespacedName{
-					Namespace: resourceName,
-					Name:      resourceName,
-				}, found)
-			}, time.Minute, time.Second).Should(Succeed())
+			By("Checking if Namespace was successfully created in the reconciliation")
+			foundNamespace := &v1.Namespace{}
+			err = k8sClient.Get(ctx, types.NamespacedName{
+				Name: resourceName,
+			}, foundNamespace)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking if TasTask was successfully created in the reconciliation")
+			foundTask := &thirdparty.Task{}
+			err = k8sClient.Get(ctx, types.NamespacedName{
+				Name:      resourceName,
+				Namespace: project.Name,
+			}, foundTask)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking if Condition was successfully updated in the reconciliation")
+			project = &corev1alpha1.Project{}
+			err = k8sClient.Get(ctx, typeNamespacedName, project)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(project.Status.Conditions)).To(Equal(1))
+			Expect(project.Status.Conditions[0].Message).To(Equal("Project created successfully"))
 
 		})
 	})
