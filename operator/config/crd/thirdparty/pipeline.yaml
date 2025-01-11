@@ -1,0 +1,47 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: pipelines.tekton.dev
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN2akNDQW1TZ0F3SUJBZ0lRTUpkOE5rb0Nma3Bpc09TYWl4ZkdQakFLQmdncWhrak9QUVFEQWpCT01SUXcKRWdZRFZRUUtFd3RyYm1GMGFYWmxMbVJsZGpFMk1EUUdBMVVFQXhNdGRHVnJkRzl1TFhCcGNHVnNhVzVsY3kxMwpaV0pvYjI5ckxuUmxhM1J2Ymkxd2FYQmxiR2x1WlhNdWMzWmpNQjRYRFRJMU1ERXhNVEV5TlRrME5sb1hEVEkxCk1ERXhPREV5TlRrME5sb3dUakVVTUJJR0ExVUVDaE1MYTI1aGRHbDJaUzVrWlhZeE5qQTBCZ05WQkFNVExYUmwKYTNSdmJpMXdhWEJsYkdsdVpYTXRkMlZpYUc5dmF5NTBaV3QwYjI0dGNHbHdaV3hwYm1WekxuTjJZekJaTUJNRwpCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBQk9nQWlRQXpBMkdTNHZuL29lc3luKzhpWHcva2QvbEYxbk84Cnc5cjNnbFFBMExUWTlzenB3SC9tUi9DRzQ3TW1HNUsyTTFUeWRXRkVxenFOMU11ZkxoV2pnZ0VpTUlJQkhqQU8KQmdOVkhROEJBZjhFQkFNQ0FvUXdIUVlEVlIwbEJCWXdGQVlJS3dZQkJRVUhBd0VHQ0NzR0FRVUZCd01DTUE4RwpBMVVkRXdFQi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZMNXZZQk1UQlZUU2xjQStwZlRYMHk3c3NnUFpNSUc4CkJnTlZIUkVFZ2JRd2diR0NHSFJsYTNSdmJpMXdhWEJsYkdsdVpYTXRkMlZpYUc5dmE0SXBkR1ZyZEc5dUxYQnAKY0dWc2FXNWxjeTEzWldKb2IyOXJMblJsYTNSdmJpMXdhWEJsYkdsdVpYT0NMWFJsYTNSdmJpMXdhWEJsYkdsdQpaWE10ZDJWaWFHOXZheTUwWld0MGIyNHRjR2x3Wld4cGJtVnpMbk4yWTRJN2RHVnJkRzl1TFhCcGNHVnNhVzVsCmN5MTNaV0pvYjI5ckxuUmxhM1J2Ymkxd2FYQmxiR2x1WlhNdWMzWmpMbU5zZFhOMFpYSXViRzlqWVd3d0NnWUkKS29aSXpqMEVBd0lEU0FBd1JRSWdKNlpwRXBMNCsyTTY3ZjdvSm83dFZyMU12WWx1ditvVUY2MkE5VkRNMHZnQwpJUURUUmQrQ21wNDRGT1RVRW9NdVl1VGJOaXYvdDI1bGhabUdRbm5jS0RMZG9BPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+        service:
+          name: tekton-pipelines-webhook
+          namespace: tekton-pipelines
+          path: /resource-conversion
+          port: 443
+      conversionReviewVersions:
+        - v1beta1
+        - v1
+  group: tekton.dev
+  names:
+    categories:
+      - tekton
+      - tekton-pipelines
+    kind: Pipeline
+    listKind: PipelineList
+    plural: pipelines
+    singular: pipeline
+  scope: Namespaced
+  versions:
+    - name: v1beta1
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+      served: true
+      storage: false
+      subresources:
+        status: {}
+    - name: v1
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+      served: true
+      storage: true
+      subresources:
+        status: {}
