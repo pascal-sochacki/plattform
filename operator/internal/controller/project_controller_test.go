@@ -66,6 +66,7 @@ var _ = Describe("Project Controller", func() {
 			By("Cleanup the specific resource instance Project")
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 		})
+
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
 			controllerReconciler := &ProjectReconciler{
@@ -108,6 +109,19 @@ var _ = Describe("Project Controller", func() {
 				Name:      resourceName,
 				Namespace: project.Name,
 			}, foundTask)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking if pipeline was successfully created in the reconciliation")
+			foundPipeline := &thirdparty.Pipeline{}
+			err = k8sClient.Get(ctx, types.NamespacedName{
+				Name:      resourceName,
+				Namespace: project.Name,
+			}, foundPipeline)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
