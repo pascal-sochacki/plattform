@@ -195,6 +195,15 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	foundPipeline := &thirdparty.Pipeline{}
+	err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: foundNamespace.Name}, foundPipeline)
+	if err != nil && apierrors.IsNotFound(err) {
+		return r.CreatePipelineForProject(ctx, project, foundNamespace)
+	} else if err != nil {
+		log.Error(err, "Failed to get Pipeline")
+		return ctrl.Result{}, err
+	}
+
 	condition := metav1.Condition{Type: typeAvailableProject,
 		Status: metav1.ConditionTrue, Reason: "Reconciling",
 		Message: "Project created successfully"}
@@ -283,6 +292,69 @@ func (r *ProjectReconciler) CreateTaskForProject(ctx context.Context, project *c
 	}
 	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 }
+func (r *ProjectReconciler) CreatePipelineForProject(ctx context.Context, project *corev1alpha1.Project, namespace *v1.Namespace) (ctrl.Result, error) {
+	log := log.FromContext(ctx)
+	task, err := r.PipelineForProject(project, namespace)
+	if err != nil {
+		log.Error(err, "Failed to define new Pipeline resource for Project")
+		return ctrl.Result{}, err
+	}
+	log.Info("Creating a new Pipeline", "Pipeline.Name", project.Name)
+	if err = r.Create(ctx, task); err != nil {
+		log.Error(err, "Failed to create new Pipeline", "Pipeline.Name", task.Name)
+		condition := metav1.Condition{
+			Type:    typeAvailableProject,
+			Status:  metav1.ConditionFalse,
+			Reason:  "Reconciling",
+			Message: fmt.Sprintf("Failed to create Pipeline for Project (%s)", project.Name),
+		}
+
+		if err := r.UpdateCondition(ctx, project, condition); err != nil {
+			log.Error(err, "Failed to update Project status")
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+}
+
+func (r *ProjectReconciler) PipelineForProject(project *corev1alpha1.Project, namespace *v1.Namespace) (*thirdparty.Pipeline, error) {
+	ls := labelsForProject()
+	pipeline := &thirdparty.Pipeline{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      project.Name,
+			Namespace: namespace.Name,
+			Labels:    ls,
+		},
+		Spec: thirdparty.PipelineSpec{
+			Params: thirdparty.ParamSpecs{
+				thirdparty.ParamSpec{
+					Name: "username",
+					Type: "string",
+				},
+			},
+			Tasks: []thirdparty.PipelineTask{
+				{
+					Name: project.Name,
+					TaskRef: &thirdparty.TaskRef{
+						Name: project.Name,
+					},
+					Params: thirdparty.Params{
+						thirdparty.Param{
+							Name:  "username",
+							Value: "$(params.username)",
+						},
+					},
+				},
+			},
+		},
+	}
+	if err := ctrl.SetControllerReference(project, pipeline, r.Scheme); err != nil {
+		return nil, err
+	}
+	return pipeline, nil
+}
 
 func (r *ProjectReconciler) TaskForProject(project *corev1alpha1.Project, namespace *v1.Namespace) (*thirdparty.Task, error) {
 	ls := labelsForProject()
@@ -294,12 +366,18 @@ func (r *ProjectReconciler) TaskForProject(project *corev1alpha1.Project, namesp
 			Labels:    ls,
 		},
 		Spec: thirdparty.TaskSpec{
+			Params: thirdparty.ParamSpecs{
+				thirdparty.ParamSpec{
+					Name: "username",
+					Type: "string",
+				},
+			},
 			Steps: []thirdparty.Step{
 				{
 					Name:  "echo",
-					Image: "alpine",
-					Script: `#!/bin/sh
-		echo "Hello World"`,
+					Image: "ubuntu",
+					Script: `#!/bin/bash
+        echo "Goodbye $(params.username)!"`,
 				},
 			},
 		},
