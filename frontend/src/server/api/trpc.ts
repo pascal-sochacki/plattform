@@ -13,6 +13,7 @@ import { ZodError } from "zod";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import * as k8s from "@kubernetes/client-node";
 
 /**
  * 1. CONTEXT
@@ -28,8 +29,11 @@ import { db } from "~/server/db";
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
   const session = await auth();
+  const kc = new k8s.KubeConfig();
+  kc.loadFromDefault();
 
   return {
+    kc,
     db,
     session,
     ...opts,

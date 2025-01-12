@@ -34,7 +34,7 @@ export default async function Page() {
       <div className="grid grid-cols-3 gap-4 p-4">
         {projects.items.map((p) => {
           const lastStatus =
-            p.status.conditions[p.status.conditions.length - 1];
+            p.status?.conditions[p.status?.conditions.length - 1];
           return (
             <Link href={`./${p.metadata?.name}`} key={p.metadata?.name}>
               <Card
