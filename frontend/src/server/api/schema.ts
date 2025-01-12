@@ -1,6 +1,13 @@
 import { z } from "zod";
 import type * as k8s from "@kubernetes/client-node";
-export const CreateProjectSchema = z.object({ project: z.string() });
+
+export const CreateProjectSchema = z.object({
+  project: z.string(),
+});
+
+export const CreatePipelineSchema = z.object({
+  project: z.string(),
+});
 
 export interface ProjectObject extends k8s.KubernetesObject {
   status: ProjectStatus;

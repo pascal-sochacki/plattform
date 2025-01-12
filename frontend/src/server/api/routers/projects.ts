@@ -11,9 +11,7 @@ export const projectRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ name: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const kc = new k8s.KubeConfig();
-      kc.loadFromDefault();
-      const customObjectsApi = kc.makeApiClient(k8s.CustomObjectsApi);
+      const customObjectsApi = ctx.kc.makeApiClient(k8s.CustomObjectsApi);
 
       const project = (await customObjectsApi.getClusterCustomObject({
         name: input.name,
@@ -50,9 +48,7 @@ export const projectRouter = createTRPCRouter({
       });
       const gitlabProject = await api.Projects.show(input.project);
 
-      const kc = new k8s.KubeConfig();
-      kc.loadFromDefault();
-      const customObjectsApi = kc.makeApiClient(k8s.CustomObjectsApi);
+      const customObjectsApi = ctx.kc.makeApiClient(k8s.CustomObjectsApi);
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const project = await customObjectsApi.createClusterCustomObject({
@@ -72,7 +68,6 @@ export const projectRouter = createTRPCRouter({
         },
         version: "v1alpha1",
         plural: "projects",
-        // labelSelector: `user=${session.user.id}`,
       });
       console.log(project);
     }),
