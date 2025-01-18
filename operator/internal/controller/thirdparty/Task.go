@@ -24,6 +24,13 @@ type TaskList struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type Pipeline struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              PipelineSpec `json:"spec"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type PipelineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -32,11 +39,42 @@ type PipelineList struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type Pipeline struct {
+type EventListener struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              PipelineSpec `json:"spec"`
+	Spec              EventListenerSpec `json:"spec"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type EventListenerList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	Items []EventListener `json:"items"`
+}
+
+type EventListenerSpec struct {
+	ServiceAccountName string                 `json:"serviceAccountName,omitempty"`
+	Triggers           []EventListenerTrigger `json:"triggers,omitempty"`
+}
+
+type EventListenerTrigger struct {
+	Name     string                  `json:"name,omitempty"`
+	Bindings []*EventListenerBinding `json:"bindings,omitempty"`
+	Template *EventListenerTemplate  `json:"template,omitempty"`
+}
+
+type EventListenerTemplate = TriggerSpecTemplate
+type EventListenerBinding = TriggerSpecBinding
+
+type TriggerSpecTemplate struct {
+	Ref *string `json:"ref,omitempty"`
+}
+
+type TriggerSpecBinding struct {
+	Name string `json:"name,omitempty"`
+}
+
 type PipelineSpec struct {
 	DisplayName string         `json:"displayName,omitempty"`
 	Description string         `json:"description,omitempty"`

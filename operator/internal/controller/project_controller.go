@@ -177,6 +177,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 		return ctrl.Result{}, nil
 	}
+
 	foundNamespace := &v1.Namespace{}
 	err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: project.Namespace}, foundNamespace)
 	if err != nil && apierrors.IsNotFound(err) {
