@@ -222,7 +222,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 					Type:    typeAvailableProject,
 					Status:  metav1.ConditionFalse,
 					Reason:  "Reconciling",
-					Message: fmt.Sprintf("Failed to create %s for Project (%s)", newObject.GetObjectKind(), project.Name),
+					Message: fmt.Sprintf("Failed to create Resource for Project error: %s", err.Error()),
 				}
 
 				if err := r.UpdateCondition(ctx, project, condition); err != nil {
