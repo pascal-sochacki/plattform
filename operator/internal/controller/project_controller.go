@@ -43,6 +43,7 @@ const (
 	typeAvailableProject = "Available"
 	// typeDegradedProject represents the status used when the custom resource is deleted and the finalizer operations are yet to occur.
 	typeDegradedProject = "Degraded"
+	typeErrorProject    = "Error"
 )
 const projectFinalizer = "core.plattf0rm.de/finalizer"
 
@@ -239,7 +240,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrl.Result{Requeue: true}, nil
 		}
 		condition := metav1.Condition{
-			Type:    typeDegradedProject,
+			Type:    typeErrorProject,
 			Status:  metav1.ConditionUnknown,
 			Reason:  "Reconciling",
 			Message: fmt.Sprintf("Failed to get Resource for Project error: %s", err.Error()),
