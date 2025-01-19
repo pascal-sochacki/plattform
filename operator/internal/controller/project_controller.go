@@ -197,16 +197,16 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
 			create: r.CreatePipelineForProject,
 		},
-		//	{
-		//		obj:    &v1.ServiceAccount{},
-		//		key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
-		//		create: r.CreateServiceAccountForProject,
-		//	},
-		//	{
-		//		obj:    &thirdparty.EventListener{},
-		//		key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
-		//		create: r.CreateEventListenerForProject,
-		//	},
+		{
+			obj:    &v1.ServiceAccount{},
+			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
+			create: r.CreateServiceAccountForProject,
+		},
+		{
+			obj:    &thirdparty.EventListener{},
+			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
+			create: r.CreateEventListenerForProject,
+		},
 	}
 
 	for _, v := range objects {

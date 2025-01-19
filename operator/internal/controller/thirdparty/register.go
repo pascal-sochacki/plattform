@@ -10,13 +10,13 @@ const GroupName = "tekton.dev"
 const GroupVersion = "v1"
 
 var PipelineSchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: GroupVersion}
-var TriggerSchemeGroupVersion = schema.GroupVersion{Group: "triggers.tekton.dev/v1beta1", Version: GroupVersion}
+var TriggerSchemeGroupVersion = schema.GroupVersion{Group: "triggers.tekton.dev", Version: "v1beta1"}
 
 var (
 	PipelineSchemeBuilder = runtime.NewSchemeBuilder(addPipelineTypes)
 	AddPipelineToScheme   = PipelineSchemeBuilder.AddToScheme
 	TriggerSchemeBuilder  = runtime.NewSchemeBuilder(addTriggerTypes)
-	AddTriggerToScheme    = PipelineSchemeBuilder.AddToScheme
+	AddTriggerToScheme    = TriggerSchemeBuilder.AddToScheme
 )
 
 func addPipelineTypes(scheme *runtime.Scheme) error {
