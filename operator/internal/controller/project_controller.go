@@ -239,6 +239,16 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 			return ctrl.Result{Requeue: true}, nil
 		}
+		condition := metav1.Condition{
+			Type:    typeDegradedProject,
+			Status:  metav1.ConditionUnknown,
+			Reason:  "Reconciling",
+			Message: fmt.Sprintf("Failed to get Resource for Project error: %s", err.Error()),
+		}
+		if err := r.UpdateCondition(ctx, project, condition); err != nil {
+			log.Error(err, "Failed to update Project status")
+			return ctrl.Result{}, err
+		}
 		log.Error(err, "Failed to get Resource")
 		return ctrl.Result{}, err
 
