@@ -19,6 +19,7 @@ package e2e
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -62,6 +63,7 @@ var _ = Describe("controller", Ordered, func() {
 
 	Context("Operator", func() {
 		It("should run successfully", func() {
+			projectDir, _ := utils.GetProjectDir()
 			var controllerPodName string
 			var err error
 
@@ -124,8 +126,13 @@ var _ = Describe("controller", Ordered, func() {
 			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
 
 			By("validating that the example project can deploy")
-			cmd = exec.Command("kubectl", "apply", "-f", "example/exampleProject.yaml")
-			_, err = utils.Run(cmd)
+			EventuallyWithOffset(1, func() error {
+				cmd = exec.Command("kubectl", "apply", "-f", filepath.Join(projectDir,
+					"config/samples/core_v1alpha1_project.yaml"))
+				_, err = utils.Run(cmd)
+				return err
+			}, time.Minute, time.Second).Should(Succeed())
+
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 			verifyReady := func() error {
 				cmd := exec.Command("kubectl", "get", "projects", "-o=jsonpath='{.items..status.conditions[?(@.type==\"Available\")].status}'")
