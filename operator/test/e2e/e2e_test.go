@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -134,24 +135,20 @@ var _ = Describe("controller", Ordered, func() {
 			}, time.Minute, time.Second).Should(Succeed())
 
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-			verifyReady := func() error {
-				cmd := exec.Command("kubectl", "get", "projects", "-o=jsonpath='{.items..status.conditions[?(@.type==\"Available\")].status}'")
-				projectOutput, err := utils.Run(cmd)
-				if err != nil {
-					return err
+			getStatus := func() error {
+				cmd = exec.Command("kubectl", "get", "projects",
+					"project-sample", "-o", "jsonpath={.status.conditions}",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "Available") {
+					return fmt.Errorf("status condition with type Available should be set")
 				}
-				status := string(projectOutput)
-				if status == "True" {
-					return nil
-				} else {
-					cmd = exec.Command("kubectl", "get", "projects", "-o", "yaml")
-					output, _ := cmd.CombinedOutput()
-					return fmt.Errorf("is not ready: %s, yaml: %s", status, string(output))
-				}
+				return nil
 			}
+			Eventually(getStatus, time.Minute, time.Second).Should(Succeed())
 
-			EventuallyWithOffset(1, verifyReady, time.Minute, time.Second).Should(Succeed())
 		})
 
 	})

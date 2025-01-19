@@ -87,7 +87,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Let's just set the status as Unknown when no status is available
 	if project.Status.Conditions == nil || len(project.Status.Conditions) == 0 {
 		condition := metav1.Condition{
-			Type:    typeAvailableProject,
+			Type:    typeDegradedProject,
 			Status:  metav1.ConditionUnknown,
 			Reason:  "Reconciling",
 			Message: "Starting reconciliation",
@@ -202,7 +202,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			if err = r.Create(ctx, newObject); err != nil {
 				log.Error(err, "Failed to create new Resource", "Resource.Name", newObject.GetName(), "Resource.Kind", newObject.GetObjectKind())
 				condition := metav1.Condition{
-					Type:    typeAvailableProject,
+					Type:    typeDegradedProject,
 					Status:  metav1.ConditionFalse,
 					Reason:  "Reconciling",
 					Message: fmt.Sprintf("Failed to create Resource for Project error: %s", err.Error()),
@@ -216,7 +216,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				return ctrl.Result{}, err
 			}
 			condition := metav1.Condition{
-				Type:    typeAvailableProject,
+				Type:    typeDegradedProject,
 				Status:  metav1.ConditionUnknown,
 				Reason:  "Reconciling",
 				Message: fmt.Sprintf("Created Resource: %d of %d", i, len(objects)),
