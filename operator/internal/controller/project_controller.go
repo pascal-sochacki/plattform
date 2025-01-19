@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -108,7 +109,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		log.Info("Adding Finalizer for Project")
 		if ok := controllerutil.AddFinalizer(project, projectFinalizer); !ok {
 			log.Error(err, "Failed to add finalizer into the custom resource")
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{}, err
 		}
 
 		if err = r.Update(ctx, project); err != nil {
@@ -232,7 +233,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 				return ctrl.Result{}, err
 			}
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{RequeueAfter: time.Second}, nil
 		} else if err != nil {
 			log.Error(err, "Failed to get Resource")
 			return ctrl.Result{}, err
