@@ -210,7 +210,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		},
 	}
 
-	for _, v := range objects {
+	for i, v := range objects {
 		err = r.Get(ctx, v.key, v.obj)
 		if err != nil && apierrors.IsNotFound(err) {
 			newObject := v.create(project)
@@ -233,6 +233,18 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 				return ctrl.Result{}, err
 			}
+			condition := metav1.Condition{
+				Type:    typeAvailableProject,
+				Status:  metav1.ConditionUnknown,
+				Reason:  "Reconciling",
+				Message: fmt.Sprintf("Created Resource: %d of %d", i, len(objects)),
+			}
+
+			if err := r.UpdateCondition(ctx, project, condition); err != nil {
+				log.Error(err, "Failed to update Project status")
+				return ctrl.Result{}, err
+			}
+
 			return ctrl.Result{RequeueAfter: time.Second}, nil
 		} else if err != nil {
 			log.Error(err, "Failed to get Resource")
@@ -241,9 +253,12 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	}
 
-	condition := metav1.Condition{Type: typeAvailableProject,
-		Status: metav1.ConditionTrue, Reason: "Reconciling",
-		Message: "Project created successfully"}
+	condition := metav1.Condition{
+		Type:    typeAvailableProject,
+		Status:  metav1.ConditionTrue,
+		Reason:  "Reconciling",
+		Message: "Project created successfully",
+	}
 
 	if err := r.UpdateCondition(ctx, project, condition); err != nil {
 		log.Error(err, "Failed to update Project")
