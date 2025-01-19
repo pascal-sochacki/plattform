@@ -142,8 +142,8 @@ var _ = Describe("controller", Ordered, func() {
 				status, err := utils.Run(cmd)
 				fmt.Println(string(status))
 				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				if !strings.Contains(string(status), "Available") {
-					return fmt.Errorf("status condition with type Available should be set output: %s", string(status))
+				if !strings.Contains(string(status), "project created successfully") {
+					return fmt.Errorf("status condition with successfull should be present: %s", string(status))
 				}
 				return nil
 			}
