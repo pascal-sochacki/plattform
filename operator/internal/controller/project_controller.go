@@ -58,6 +58,7 @@ type ProjectReconciler struct {
 // +kubebuilder:rbac:groups=core.plattf0rm.de,resources=projects/finalizers,verbs=update
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -225,7 +226,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				return ctrl.Result{}, err
 			}
 			condition := metav1.Condition{
-				Type:    typeDegradedProject,
+				Type:    typeAvailableProject,
 				Status:  metav1.ConditionUnknown,
 				Reason:  "Reconciling",
 				Message: fmt.Sprintf("Created Resource: %d of %d", i, len(objects)),
