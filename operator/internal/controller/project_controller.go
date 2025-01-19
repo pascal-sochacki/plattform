@@ -324,6 +324,20 @@ func (r *ProjectReconciler) CreateEventListenerForProject(project *corev1alpha1.
 		ObjectMeta: *r.createObjectMeta(project),
 		Spec: thirdparty.EventListenerSpec{
 			ServiceAccountName: project.Name,
+			Triggers: []thirdparty.EventListenerTrigger{
+				{
+
+					Name: project.Name,
+					Bindings: []*thirdparty.TriggerSpecTemplate{
+						{
+							Ref: &project.Name,
+						},
+					},
+					Template: &thirdparty.TriggerSpecTemplate{
+						Ref: &project.Name,
+					},
+				},
+			},
 		},
 	}
 	return eventListener

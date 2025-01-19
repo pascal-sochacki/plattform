@@ -109,11 +109,11 @@ func (in *EventListenerTrigger) DeepCopyInto(out *EventListenerTrigger) {
 	*out = *in
 	if in.Bindings != nil {
 		in, out := &in.Bindings, &out.Bindings
-		*out = make([]*TriggerBinding, len(*in))
+		*out = make([]*TriggerSpecTemplate, len(*in))
 		for i := range *in {
 			if (*in)[i] != nil {
 				in, out := &(*in)[i], &(*out)[i]
-				*out = new(TriggerBinding)
+				*out = new(TriggerSpecTemplate)
 				(*in).DeepCopyInto(*out)
 			}
 		}

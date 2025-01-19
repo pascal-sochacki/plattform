@@ -21,6 +21,7 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/google/go-cmp/cmp/internal/function"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -123,6 +124,28 @@ var _ = Describe("controller", Ordered, func() {
 			}
 			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
 
+			By("validating that the example project can deploy")
+			cmd = exec.Command("kubectl", "apply", "-f", "example/exampleProject.yaml")
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			verifyReady := func() error {
+				cmd := exec.Command("kubectl", "get", "projects", "-o=jsonpath='{.items..status.conditions[?(@.type==\"Available\")].status}'")
+				projectOutput, err := utils.Run(cmd)
+				if err != nil {
+					return err
+				}
+				status := utils.GetNonEmptyLines(string(projectOutput))
+				if len(status) != 1 {
+					return fmt.Errorf("expect 1 project, but got %d", len(status))
+				}
+				if status[0] == "True" {
+					return nil
+				} else {
+					return fmt.Errorf("is not ready: %s", status[0])
+				}
+			}
+			EventuallyWithOffset(1, verifyReady, time.Minute, time.Second).Should(Succeed())
 		})
+
 	})
 })

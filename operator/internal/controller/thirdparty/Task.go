@@ -106,9 +106,9 @@ type EventListenerSpec struct {
 }
 
 type EventListenerTrigger struct {
-	Name     string               `json:"name,omitempty"`
-	Bindings []*TriggerBinding    `json:"bindings,omitempty"`
-	Template *TriggerSpecTemplate `json:"template,omitempty"`
+	Name     string                 `json:"name,omitempty"`
+	Bindings []*TriggerSpecTemplate `json:"bindings,omitempty"`
+	Template *TriggerSpecTemplate   `json:"template,omitempty"`
 }
 
 type TriggerSpecTemplate struct {
