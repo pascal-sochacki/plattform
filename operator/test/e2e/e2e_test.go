@@ -140,7 +140,9 @@ var _ = Describe("controller", Ordered, func() {
 				if status[0] == "True" {
 					return nil
 				} else {
-					return fmt.Errorf("is not ready: %s", status[0])
+					cmd = exec.Command("kubectl", "get", "projects", "-o", "yaml")
+					output, _ := cmd.CombinedOutput()
+					return fmt.Errorf("is not ready: %s, yaml: %s", status[0], string(output))
 				}
 			}
 			EventuallyWithOffset(1, verifyReady, time.Minute, time.Second).Should(Succeed())
