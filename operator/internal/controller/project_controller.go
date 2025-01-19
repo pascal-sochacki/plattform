@@ -198,7 +198,11 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 		log.Info("checking", "i", i, "max", len(objects))
 		err := r.Get(ctx, v.key, v.obj)
-		if err != nil && apierrors.IsNotFound(err) {
+		if err == nil {
+			continue
+		}
+
+		if apierrors.IsNotFound(err) {
 			log.Info("not found", "i", i, "max", len(objects))
 			newObject := v.create(project)
 			if err := ctrl.SetControllerReference(project, newObject, r.Scheme); err != nil {
@@ -233,10 +237,9 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 
 			return ctrl.Result{Requeue: true}, nil
-		} else if err != nil {
-			log.Error(err, "Failed to get Resource")
-			return ctrl.Result{}, err
 		}
+		log.Error(err, "Failed to get Resource")
+		return ctrl.Result{}, err
 
 	}
 
