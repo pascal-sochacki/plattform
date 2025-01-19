@@ -2,6 +2,10 @@
 // +kubebuilder:skip
 package thirdparty
 
+import (
+	"k8s.io/apimachinery/pkg/runtime"
+)
+
 // https://github.com/tektoncd/pipeline/tree/main/pkg/apis/pipeline/v1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,6 +28,13 @@ type TaskList struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type Pipeline struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              PipelineSpec `json:"spec"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type PipelineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -32,11 +43,82 @@ type PipelineList struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type Pipeline struct {
+type EventListener struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              PipelineSpec `json:"spec"`
+	Spec              EventListenerSpec `json:"spec"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type EventListenerList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	Items []EventListener `json:"items"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type TriggerTemplate struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              TriggerTemplateSpec `json:"spec"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type TriggerTemplateList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	Items []TriggerTemplate `json:"items"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type TriggerBinding struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              TriggerBindingSpec `json:"spec"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type TriggerBindingList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	Items []TriggerBinding `json:"items"`
+}
+
+type TriggerTemplateSpec struct {
+	ResourceTemplates []TriggerResourceTemplate `json:"resourcetemplates,omitempty"`
+	Params            []Param                   `json:"params,omitempty"`
+}
+
+type TriggerResourceTemplate struct {
+	runtime.RawExtension `json:",inline"`
+}
+
+type TriggerBindingSpec struct {
+	Params []Param `json:"params,omitempty"`
+}
+
+type EventListenerSpec struct {
+	ServiceAccountName string                 `json:"serviceAccountName,omitempty"`
+	Triggers           []EventListenerTrigger `json:"triggers,omitempty"`
+}
+
+type EventListenerTrigger struct {
+	Name     string                 `json:"name,omitempty"`
+	Bindings []*TriggerSpecTemplate `json:"bindings,omitempty"`
+	Template *TriggerSpecTemplate   `json:"template,omitempty"`
+}
+
+type TriggerSpecTemplate struct {
+	Ref *string `json:"ref,omitempty"`
+}
+
+type TriggerSpecBinding struct {
+	Name string `json:"name,omitempty"`
+}
+
 type PipelineSpec struct {
 	DisplayName string         `json:"displayName,omitempty"`
 	Description string         `json:"description,omitempty"`
