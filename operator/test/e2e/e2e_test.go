@@ -141,16 +141,13 @@ var _ = Describe("controller", Ordered, func() {
 				if err != nil {
 					return err
 				}
-				status := utils.GetNonEmptyLines(string(projectOutput))
-				if len(status) != 1 {
-					return fmt.Errorf("expect 1 project, but got %d", len(status))
-				}
-				if status[0] == "True" {
+				status := string(projectOutput)
+				if status == "True" {
 					return nil
 				} else {
 					cmd = exec.Command("kubectl", "get", "projects", "-o", "yaml")
 					output, _ := cmd.CombinedOutput()
-					return fmt.Errorf("is not ready: %s, yaml: %s", status[0], string(output))
+					return fmt.Errorf("is not ready: %s, yaml: %s", status, string(output))
 				}
 			}
 
