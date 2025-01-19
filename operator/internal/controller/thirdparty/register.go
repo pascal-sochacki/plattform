@@ -9,23 +9,44 @@ import (
 const GroupName = "tekton.dev"
 const GroupVersion = "v1"
 
-var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: GroupVersion}
+var PipelineSchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: GroupVersion}
+var TriggerSchemeGroupVersion = schema.GroupVersion{Group: "triggers.tekton.dev/v1beta1", Version: GroupVersion}
 
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	PipelineSchemeBuilder = runtime.NewSchemeBuilder(addPipelineTypes)
+	AddPipelineToScheme   = PipelineSchemeBuilder.AddToScheme
+	TriggerSchemeBuilder  = runtime.NewSchemeBuilder(addTriggerTypes)
+	AddTriggerToScheme    = PipelineSchemeBuilder.AddToScheme
 )
 
-func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+func addPipelineTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(PipelineSchemeGroupVersion,
 		&Task{},
 		&TaskList{},
 	)
-	scheme.AddKnownTypes(SchemeGroupVersion,
+	scheme.AddKnownTypes(PipelineSchemeGroupVersion,
 		&Pipeline{},
 		&PipelineList{},
 	)
 
-	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
+	metav1.AddToGroupVersion(scheme, PipelineSchemeGroupVersion)
+	return nil
+}
+
+func addTriggerTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(TriggerSchemeGroupVersion,
+		&EventListener{},
+		&EventListenerList{},
+	)
+	scheme.AddKnownTypes(TriggerSchemeGroupVersion,
+		&TriggerBinding{},
+		&TriggerBindingList{},
+	)
+	scheme.AddKnownTypes(TriggerSchemeGroupVersion,
+		&TriggerTemplate{},
+		&TriggerTemplateList{},
+	)
+
+	metav1.AddToGroupVersion(scheme, TriggerSchemeGroupVersion)
 	return nil
 }

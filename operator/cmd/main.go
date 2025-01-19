@@ -47,9 +47,10 @@ var (
 )
 
 func init() {
-	thirdparty.AddToScheme(scheme)
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	thirdparty.AddPipelineToScheme(scheme)
+	thirdparty.AddTriggerToScheme(scheme)
 
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(corev1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }

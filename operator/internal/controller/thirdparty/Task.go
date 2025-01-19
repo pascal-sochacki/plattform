@@ -2,6 +2,10 @@
 // +kubebuilder:skip
 package thirdparty
 
+import (
+	"k8s.io/apimachinery/pkg/runtime"
+)
+
 // https://github.com/tektoncd/pipeline/tree/main/pkg/apis/pipeline/v1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,6 +55,48 @@ type EventListenerList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 
 	Items []EventListener `json:"items"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type TriggerTemplate struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              TriggerTemplateSpec `json:"spec"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type TriggerTemplateList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	Items []TriggerTemplate `json:"items"`
+}
+
+type TriggerTemplateSpec struct {
+	ResourceTemplates []TriggerResourceTemplate `json:"resourcetemplates,omitempty"`
+	Params            []Param                   `json:"params,omitempty"`
+}
+type TriggerResourceTemplate struct {
+	runtime.RawExtension `json:",inline"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type TriggerBinding struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              TriggerBindingSpec `json:"spec"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type TriggerBindingList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	Items []TriggerBinding `json:"items"`
+}
+
+type TriggerBindingSpec struct {
+	Params []Param `json:"params,omitempty"`
 }
 
 type EventListenerSpec struct {
