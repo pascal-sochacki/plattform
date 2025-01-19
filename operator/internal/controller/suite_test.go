@@ -76,7 +76,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = thirdparty.AddToScheme(scheme.Scheme)
+	err = thirdparty.AddPipelineToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = corev1alpha1.AddToScheme(scheme.Scheme)

@@ -72,14 +72,6 @@ type TriggerTemplateList struct {
 	Items []TriggerTemplate `json:"items"`
 }
 
-type TriggerTemplateSpec struct {
-	ResourceTemplates []TriggerResourceTemplate `json:"resourcetemplates,omitempty"`
-	Params            []Param                   `json:"params,omitempty"`
-}
-type TriggerResourceTemplate struct {
-	runtime.RawExtension `json:",inline"`
-}
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type TriggerBinding struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -95,6 +87,15 @@ type TriggerBindingList struct {
 	Items []TriggerBinding `json:"items"`
 }
 
+type TriggerTemplateSpec struct {
+	ResourceTemplates []TriggerResourceTemplate `json:"resourcetemplates,omitempty"`
+	Params            []Param                   `json:"params,omitempty"`
+}
+
+type TriggerResourceTemplate struct {
+	runtime.RawExtension `json:",inline"`
+}
+
 type TriggerBindingSpec struct {
 	Params []Param `json:"params,omitempty"`
 }
@@ -105,13 +106,10 @@ type EventListenerSpec struct {
 }
 
 type EventListenerTrigger struct {
-	Name     string                  `json:"name,omitempty"`
-	Bindings []*EventListenerBinding `json:"bindings,omitempty"`
-	Template *EventListenerTemplate  `json:"template,omitempty"`
+	Name     string               `json:"name,omitempty"`
+	Bindings []*TriggerBinding    `json:"bindings,omitempty"`
+	Template *TriggerSpecTemplate `json:"template,omitempty"`
 }
-
-type EventListenerTemplate = TriggerSpecTemplate
-type EventListenerBinding = TriggerSpecBinding
 
 type TriggerSpecTemplate struct {
 	Ref *string `json:"ref,omitempty"`
