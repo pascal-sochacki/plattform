@@ -103,7 +103,10 @@ var _ = Describe("Project Controller", func() {
 			}, foundNamespace)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Checking if TasTask was successfully created in the reconciliation")
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName,
+			})
+			By("Checking if TaskTask was successfully created in the reconciliation")
 			foundTask := &thirdparty.Task{}
 			err = k8sClient.Get(ctx, types.NamespacedName{
 				Name:      resourceName,

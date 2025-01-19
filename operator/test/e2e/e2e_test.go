@@ -134,6 +134,7 @@ var _ = Describe("controller", Ordered, func() {
 			}, time.Minute, time.Second).Should(Succeed())
 
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
 			verifyReady := func() error {
 				cmd := exec.Command("kubectl", "get", "projects", "-o=jsonpath='{.items..status.conditions[?(@.type==\"Available\")].status}'")
 				projectOutput, err := utils.Run(cmd)
@@ -152,6 +153,7 @@ var _ = Describe("controller", Ordered, func() {
 					return fmt.Errorf("is not ready: %s, yaml: %s", status[0], string(output))
 				}
 			}
+
 			EventuallyWithOffset(1, verifyReady, time.Minute, time.Second).Should(Succeed())
 		})
 

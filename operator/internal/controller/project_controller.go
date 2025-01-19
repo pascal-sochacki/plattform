@@ -100,7 +100,6 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 		if err := r.Get(ctx, req.NamespacedName, project); err != nil {
 			log.Error(err, "Failed to re-fetch project")
-			return ctrl.Result{}, err
 		}
 	}
 
@@ -115,6 +114,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			log.Error(err, "Failed to update custom resource to add finalizer")
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{}, nil
 	}
 	// Check if the Project instance is marked to be deleted, which is
 	// indicated by the deletion timestamp being set.
@@ -210,8 +210,11 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	for i, v := range objects {
-		err = r.Get(ctx, v.key, v.obj)
+
+		log.Info("checking", "i", i, "max", len(objects))
+		err := r.Get(ctx, v.key, v.obj)
 		if err != nil && apierrors.IsNotFound(err) {
+			log.Info("not found", "i", i, "max", len(objects))
 			newObject := v.create(project)
 			if err := ctrl.SetControllerReference(project, newObject, r.Scheme); err != nil {
 				return ctrl.Result{}, err
