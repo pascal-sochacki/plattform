@@ -179,32 +179,38 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	objects := []struct {
 		obj    client.Object
+		key    types.NamespacedName
 		create func(*corev1alpha1.Project) client.Object
 	}{
 		{
 			obj:    &v1.Namespace{},
+			key:    types.NamespacedName{Name: project.Name},
 			create: r.CreateNamespaceForProject,
 		},
 		{
 			obj:    &thirdparty.Task{},
+			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
 			create: r.CreateTaskForProject,
 		},
 		{
 			obj:    &thirdparty.Pipeline{},
+			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
 			create: r.CreatePipelineForProject,
 		},
-		{
-			obj:    &v1.ServiceAccount{},
-			create: r.CreateServiceAccountForProject,
-		},
-		{
-			obj:    &thirdparty.EventListener{},
-			create: r.CreateEventListenerForProject,
-		},
+		//	{
+		//		obj:    &v1.ServiceAccount{},
+		//		key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
+		//		create: r.CreateServiceAccountForProject,
+		//	},
+		//	{
+		//		obj:    &thirdparty.EventListener{},
+		//		key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
+		//		create: r.CreateEventListenerForProject,
+		//	},
 	}
 
 	for _, v := range objects {
-		err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: project.Namespace}, v.obj)
+		err = r.Get(ctx, v.key, v.obj)
 		if err != nil && apierrors.IsNotFound(err) {
 			newObject := v.create(project)
 			if err := ctrl.SetControllerReference(project, newObject, r.Scheme); err != nil {
@@ -226,6 +232,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 				return ctrl.Result{}, err
 			}
+			return ctrl.Result{}, nil
 		} else if err != nil {
 			log.Error(err, "Failed to get Resource")
 			return ctrl.Result{}, err

@@ -79,6 +79,9 @@ var _ = BeforeSuite(func() {
 	err = thirdparty.AddPipelineToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = thirdparty.AddTriggerToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
 	err = corev1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
