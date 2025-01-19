@@ -19,7 +19,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -180,57 +179,58 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	objects := []struct {
 		obj    client.Object
-		create func(context.Context, *corev1alpha1.Project) (client.Object, error)
+		create func(*corev1alpha1.Project) client.Object
 	}{
 		{
 			obj:    &v1.Namespace{},
 			create: r.CreateNamespaceForProject,
 		},
+		{
+			obj:    &thirdparty.Task{},
+			create: r.CreateTaskForProject,
+		},
+		{
+			obj:    &thirdparty.Pipeline{},
+			create: r.CreatePipelineForProject,
+		},
+		{
+			obj:    &v1.ServiceAccount{},
+			create: r.CreateServiceAccountForProject,
+		},
+		{
+			obj:    &thirdparty.EventListener{},
+			create: r.CreateEventListenerForProject,
+		},
 	}
 
-	foundNamespace := &v1.Namespace{}
-	err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: project.Namespace}, foundNamespace)
-	if err != nil && apierrors.IsNotFound(err) {
-		return r.CreateNamespaceForProject(ctx, project)
-	} else if err != nil {
-		log.Error(err, "Failed to get Namespace")
-		return ctrl.Result{}, err
-	}
+	for _, v := range objects {
+		err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: project.Namespace}, v.obj)
+		if err != nil && apierrors.IsNotFound(err) {
+			newObject := v.create(project)
+			if err := ctrl.SetControllerReference(project, newObject, r.Scheme); err != nil {
+				return ctrl.Result{}, err
+			}
+			if err = r.Create(ctx, newObject); err != nil {
+				log.Error(err, "Failed to create new Resource", "Resource.Name", newObject.GetName(), "Resource.Kind", newObject.GetObjectKind())
+				condition := metav1.Condition{
+					Type:    typeAvailableProject,
+					Status:  metav1.ConditionFalse,
+					Reason:  "Reconciling",
+					Message: fmt.Sprintf("Failed to create %s for Project (%s)", newObject.GetObjectKind(), project.Name),
+				}
 
-	foundTask := &thirdparty.Task{}
-	err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: foundNamespace.Name}, foundTask)
-	if err != nil && apierrors.IsNotFound(err) {
-		return r.CreateTaskForProject(ctx, project, foundNamespace)
-	} else if err != nil {
-		log.Error(err, "Failed to get Task")
-		return ctrl.Result{}, err
-	}
+				if err := r.UpdateCondition(ctx, project, condition); err != nil {
+					log.Error(err, "Failed to update Project status")
+					return ctrl.Result{}, err
+				}
 
-	foundPipeline := &thirdparty.Pipeline{}
-	err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: foundNamespace.Name}, foundPipeline)
-	if err != nil && apierrors.IsNotFound(err) {
-		return r.CreatePipelineForProject(ctx, project, foundNamespace)
-	} else if err != nil {
-		log.Error(err, "Failed to get Pipeline")
-		return ctrl.Result{}, err
-	}
+				return ctrl.Result{}, err
+			}
+		} else if err != nil {
+			log.Error(err, "Failed to get Resource")
+			return ctrl.Result{}, err
+		}
 
-	foundServiceAccount := &v1.ServiceAccount{}
-	err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: foundNamespace.Name}, foundServiceAccount)
-	if err != nil && apierrors.IsNotFound(err) {
-		return r.CreateServiceAccountForProject(ctx, project, foundNamespace)
-	} else if err != nil {
-		log.Error(err, "Failed to get ServiceAccount")
-		return ctrl.Result{}, err
-	}
-
-	foundEventlistener := &thirdparty.EventListener{}
-	err = r.Get(ctx, types.NamespacedName{Name: project.Name, Namespace: foundNamespace.Name}, foundEventlistener)
-	if err != nil && apierrors.IsNotFound(err) {
-		return r.CreateEventListenerForProject(ctx, project, foundNamespace, foundServiceAccount)
-	} else if err != nil {
-		log.Error(err, "Failed to get Pipeline")
-		return ctrl.Result{}, err
 	}
 
 	condition := metav1.Condition{Type: typeAvailableProject,
@@ -245,163 +245,37 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *ProjectReconciler) CreateServiceAccountForProject(ctx context.Context, project *corev1alpha1.Project, foundNamespace *v1.Namespace) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
-	serviceAccount, err := r.ServiceAccountForProject(project)
-	if err != nil {
-		log.Error(err, "Failed to define new ServiceAccount resource for Project")
-		return ctrl.Result{}, err
-	}
-	log.Info("Creating a new ServiceAccount", "ServiceAccount.Name", serviceAccount.Name)
-	if err = r.Create(ctx, serviceAccount); err != nil {
-		log.Error(err, "Failed to create new ServiceAccount", "ServiceAccount.Name", serviceAccount.Name)
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
-}
-
-func (r *ProjectReconciler) ServiceAccountForProject(project *corev1alpha1.Project) (*v1.ServiceAccount, error) {
-	serviceAccount := &v1.ServiceAccount{
-		ObjectMeta: *r.createObjectMeta(project),
-	}
-
-	if err := ctrl.SetControllerReference(project, serviceAccount, r.Scheme); err != nil {
-		return nil, err
-	}
-	return serviceAccount, nil
-}
-
-func (r *ProjectReconciler) CreateEventListenerForProject(ctx context.Context, project *corev1alpha1.Project, foundNamespace *v1.Namespace, serviceAccount *v1.ServiceAccount) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
-	eventListener, err := r.EventListerForProject(project, serviceAccount)
-	if err != nil {
-		log.Error(err, "Failed to define new EventListener resource for Project")
-		return ctrl.Result{}, err
-	}
-	log.Info("Creating a new EventListener", "EventListener.Name", eventListener.Name)
-	if err = r.Create(ctx, eventListener); err != nil {
-		log.Error(err, "Failed to create new EventListener", "EventListener.Name", eventListener.Name)
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
-}
-
-func (r *ProjectReconciler) EventListerForProject(project *corev1alpha1.Project, serviceAccount *v1.ServiceAccount) (*thirdparty.EventListener, error) {
-
-	eventListener := &thirdparty.EventListener{
-
-		ObjectMeta: *r.createObjectMeta(project),
-		Spec: thirdparty.EventListenerSpec{
-			ServiceAccountName: serviceAccount.Name,
-		},
-	}
-	if err := ctrl.SetControllerReference(project, eventListener, r.Scheme); err != nil {
-		return nil, err
-	}
-	return eventListener, nil
-}
-
-func (r *ProjectReconciler) UpdateCondition(ctx context.Context, project *corev1alpha1.Project, condition metav1.Condition) error {
-	meta.SetStatusCondition(&project.Status.Conditions, condition)
-	return r.Status().Update(ctx, project)
-}
-
-func (r *ProjectReconciler) CreateNamespaceForProject(ctx context.Context, project *corev1alpha1.Project) (client.Object, error) {
-	log := log.FromContext(ctx)
-	ns, err := r.NamepsaceForProject(project)
-	if err != nil {
-		log.Error(err, "Failed to define new Namespace resource for Project")
-
-		// The following implementation will update the status
-		condition := metav1.Condition{
-			Type:    typeAvailableProject,
-			Status:  metav1.ConditionFalse,
-			Reason:  "Reconciling",
-			Message: fmt.Sprintf("Failed to create Namespace for the custom resource (%s): (%s)", project.Name, err),
-		}
-
-		if err := r.UpdateCondition(ctx, project, condition); err != nil {
-			log.Error(err, "Failed to update Project status")
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, err
-	}
-	return ns, nil
-	log.Info("Creating a new Namespace", "Deployment.Name", project.Name)
-	if err = r.Create(ctx, ns); err != nil {
-		log.Error(err, "Failed to create new Namespace", "Namespace.Name", ns.Name)
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
-
-}
-
-func (r *ProjectReconciler) NamepsaceForProject(project *corev1alpha1.Project) (*v1.Namespace, error) {
-
+func (r *ProjectReconciler) CreateNamespaceForProject(project *corev1alpha1.Project) client.Object {
 	ns := &v1.Namespace{
 		ObjectMeta: *r.createObjectMeta(project),
 	}
-
-	if err := ctrl.SetControllerReference(project, ns, r.Scheme); err != nil {
-		return nil, err
-	}
-	return ns, nil
-}
-func (r *ProjectReconciler) CreateTaskForProject(ctx context.Context, project *corev1alpha1.Project, namespace *v1.Namespace) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
-	task, err := r.TaskForProject(project, namespace)
-	if err != nil {
-		log.Error(err, "Failed to define new Task resource for Project")
-		return ctrl.Result{}, err
-	}
-	log.Info("Creating a new Task", "Task.Name", project.Name)
-	if err = r.Create(ctx, task); err != nil {
-		log.Error(err, "Failed to create new Task", "Task.Name", task.Name)
-		condition := metav1.Condition{
-			Type:    typeAvailableProject,
-			Status:  metav1.ConditionFalse,
-			Reason:  "Reconciling",
-			Message: fmt.Sprintf("Failed to create Task for Project (%s)", project.Name),
-		}
-
-		if err := r.UpdateCondition(ctx, project, condition); err != nil {
-			log.Error(err, "Failed to update Project status")
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
-}
-func (r *ProjectReconciler) CreatePipelineForProject(ctx context.Context, project *corev1alpha1.Project, namespace *v1.Namespace) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
-	task, err := r.PipelineForProject(project, namespace)
-	if err != nil {
-		log.Error(err, "Failed to define new Pipeline resource for Project")
-		return ctrl.Result{}, err
-	}
-	log.Info("Creating a new Pipeline", "Pipeline.Name", project.Name)
-	if err = r.Create(ctx, task); err != nil {
-		log.Error(err, "Failed to create new Pipeline", "Pipeline.Name", task.Name)
-		condition := metav1.Condition{
-			Type:    typeAvailableProject,
-			Status:  metav1.ConditionFalse,
-			Reason:  "Reconciling",
-			Message: fmt.Sprintf("Failed to create Pipeline for Project (%s)", project.Name),
-		}
-
-		if err := r.UpdateCondition(ctx, project, condition); err != nil {
-			log.Error(err, "Failed to update Project status")
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+	return ns
 }
 
-func (r *ProjectReconciler) PipelineForProject(project *corev1alpha1.Project, namespace *v1.Namespace) (*thirdparty.Pipeline, error) {
+func (r *ProjectReconciler) CreateTaskForProject(project *corev1alpha1.Project) client.Object {
+	task := &thirdparty.Task{
+		ObjectMeta: *r.createObjectMeta(project),
+		Spec: thirdparty.TaskSpec{
+			Params: thirdparty.ParamSpecs{
+				thirdparty.ParamSpec{
+					Name: "username",
+					Type: "string",
+				},
+			},
+			Steps: []thirdparty.Step{
+				{
+					Name:  "echo",
+					Image: "ubuntu",
+					Script: `#!/bin/bash
+        echo "Goodbye $(params.username)!"`,
+				},
+			},
+		},
+	}
+	return task
+}
+
+func (r *ProjectReconciler) CreatePipelineForProject(project *corev1alpha1.Project) client.Object {
 	pipeline := &thirdparty.Pipeline{
 		ObjectMeta: *r.createObjectMeta(project),
 		Spec: thirdparty.PipelineSpec{
@@ -427,10 +301,30 @@ func (r *ProjectReconciler) PipelineForProject(project *corev1alpha1.Project, na
 			},
 		},
 	}
-	if err := ctrl.SetControllerReference(project, pipeline, r.Scheme); err != nil {
-		return nil, err
+	return pipeline
+}
+
+func (r *ProjectReconciler) CreateServiceAccountForProject(project *corev1alpha1.Project) client.Object {
+	serviceAccount := &v1.ServiceAccount{
+		ObjectMeta: *r.createObjectMeta(project),
 	}
-	return pipeline, nil
+	return serviceAccount
+}
+
+func (r *ProjectReconciler) CreateEventListenerForProject(project *corev1alpha1.Project) client.Object {
+	eventListener := &thirdparty.EventListener{
+
+		ObjectMeta: *r.createObjectMeta(project),
+		Spec: thirdparty.EventListenerSpec{
+			ServiceAccountName: project.Name,
+		},
+	}
+	return eventListener
+}
+
+func (r *ProjectReconciler) UpdateCondition(ctx context.Context, project *corev1alpha1.Project, condition metav1.Condition) error {
+	meta.SetStatusCondition(&project.Status.Conditions, condition)
+	return r.Status().Update(ctx, project)
 }
 
 func (r *ProjectReconciler) createObjectMeta(project *corev1alpha1.Project) *metav1.ObjectMeta {
@@ -442,33 +336,6 @@ func (r *ProjectReconciler) createObjectMeta(project *corev1alpha1.Project) *met
 			"app.kubernetes.io/managed-by": "ProjectController",
 		},
 	}
-}
-
-func (r *ProjectReconciler) TaskForProject(project *corev1alpha1.Project, namespace *v1.Namespace) (*thirdparty.Task, error) {
-	task := &thirdparty.Task{
-		ObjectMeta: *r.createObjectMeta(project),
-		Spec: thirdparty.TaskSpec{
-			Params: thirdparty.ParamSpecs{
-				thirdparty.ParamSpec{
-					Name: "username",
-					Type: "string",
-				},
-			},
-			Steps: []thirdparty.Step{
-				{
-					Name:  "echo",
-					Image: "ubuntu",
-					Script: `#!/bin/bash
-        echo "Goodbye $(params.username)!"`,
-				},
-			},
-		},
-	}
-
-	if err := ctrl.SetControllerReference(project, task, r.Scheme); err != nil {
-		return nil, err
-	}
-	return task, nil
 }
 
 // finalizeMemcached will perform the required operations before delete the CR.
