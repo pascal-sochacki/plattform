@@ -187,6 +187,11 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			key:    types.NamespacedName{Name: project.Name},
 			create: r.CreateNamespaceForProject,
 		},
+		{
+			obj:    &v1.ServiceAccount{},
+			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
+			create: r.CreateServiceAccountForProject,
+		},
 	}
 
 	for i, v := range objects {

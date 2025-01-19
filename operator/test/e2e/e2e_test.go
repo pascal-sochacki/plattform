@@ -143,7 +143,7 @@ var _ = Describe("controller", Ordered, func() {
 				fmt.Println(string(status))
 				ExpectWithOffset(2, err).NotTo(HaveOccurred())
 				if !strings.Contains(string(status), "Available") {
-					return fmt.Errorf("status condition with type Available should be set")
+					return fmt.Errorf("status condition with type Available should be set output: %s", string(status))
 				}
 				return nil
 			}
