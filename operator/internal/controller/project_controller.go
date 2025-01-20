@@ -31,10 +31,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	pipeline "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	triggers "github.com/tektoncd/triggers/pkg/apis/triggers/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	corev1alpha1 "github.com/pascal-sochacki/plattform/api/v1alpha1"
-	"github.com/pascal-sochacki/plattform/internal/controller/thirdparty"
 )
 
 // Definitions to manage status conditions
@@ -239,6 +240,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 			return ctrl.Result{Requeue: true}, nil
 		}
+
 		condition := metav1.Condition{
 			Type:    typeErrorProject,
 			Status:  metav1.ConditionUnknown,
@@ -277,16 +279,16 @@ func (r *ProjectReconciler) CreateNamespaceForProject(project *corev1alpha1.Proj
 }
 
 func (r *ProjectReconciler) CreateTaskForProject(project *corev1alpha1.Project) client.Object {
-	task := &thirdparty.Task{
+	task := &pipeline.Task{
 		ObjectMeta: *r.createObjectMeta(project),
-		Spec: thirdparty.TaskSpec{
-			Params: thirdparty.ParamSpecs{
-				thirdparty.ParamSpec{
+		Spec: pipeline.TaskSpec{
+			Params: pipeline.ParamSpecs{
+				pipeline.ParamSpec{
 					Name: "username",
 					Type: "string",
 				},
 			},
-			Steps: []thirdparty.Step{
+			Steps: []pipeline.Step{
 				{
 					Name:  "echo",
 					Image: "ubuntu",
@@ -300,25 +302,25 @@ func (r *ProjectReconciler) CreateTaskForProject(project *corev1alpha1.Project) 
 }
 
 func (r *ProjectReconciler) CreatePipelineForProject(project *corev1alpha1.Project) client.Object {
-	pipeline := &thirdparty.Pipeline{
+	pipeline := &pipeline.Pipeline{
 		ObjectMeta: *r.createObjectMeta(project),
-		Spec: thirdparty.PipelineSpec{
-			Params: thirdparty.ParamSpecs{
-				thirdparty.ParamSpec{
+		Spec: pipeline.PipelineSpec{
+			Params: pipeline.ParamSpecs{
+				pipeline.ParamSpec{
 					Name: "username",
 					Type: "string",
 				},
 			},
-			Tasks: []thirdparty.PipelineTask{
+			Tasks: []pipeline.PipelineTask{
 				{
 					Name: project.Name,
-					TaskRef: &thirdparty.TaskRef{
+					TaskRef: &pipeline.TaskRef{
 						Name: project.Name,
 					},
-					Params: thirdparty.Params{
-						thirdparty.Param{
+					Params: pipeline.Params{
+						pipeline.Param{
 							Name:  "username",
-							Value: "$(params.username)",
+							Value: pipeline.ParamValue{StringVal: "$(params.username)"},
 						},
 					},
 				},
@@ -336,21 +338,20 @@ func (r *ProjectReconciler) CreateServiceAccountForProject(project *corev1alpha1
 }
 
 func (r *ProjectReconciler) CreateEventListenerForProject(project *corev1alpha1.Project) client.Object {
-	eventListener := &thirdparty.EventListener{
+	eventListener := &triggers.EventListener{
 
 		ObjectMeta: *r.createObjectMeta(project),
-		Spec: thirdparty.EventListenerSpec{
+		Spec: triggers.EventListenerSpec{
 			ServiceAccountName: project.Name,
-			Triggers: []thirdparty.EventListenerTrigger{
+			Triggers: []triggers.EventListenerTrigger{
 				{
-
 					Name: project.Name,
-					Bindings: []*thirdparty.TriggerSpecTemplate{
-						{
-							Ref: &project.Name,
+					Bindings: []*triggers.EventListenerBinding{
+						&triggers.TriggerSpecBinding{
+							Ref: project.Name,
 						},
 					},
-					Template: &thirdparty.TriggerSpecTemplate{
+					Template: &triggers.TriggerSpecTemplate{
 						Ref: &project.Name,
 					},
 				},

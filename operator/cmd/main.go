@@ -35,9 +35,11 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	pipeline "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	triggers "github.com/tektoncd/triggers/pkg/apis/triggers/v1beta1"
+
 	corev1alpha1 "github.com/pascal-sochacki/plattform/api/v1alpha1"
 	"github.com/pascal-sochacki/plattform/internal/controller"
-	"github.com/pascal-sochacki/plattform/internal/controller/thirdparty"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -47,8 +49,8 @@ var (
 )
 
 func init() {
-	thirdparty.AddPipelineToScheme(scheme)
-	thirdparty.AddTriggerToScheme(scheme)
+	pipeline.AddToScheme(scheme)
+	triggers.AddToScheme(scheme)
 
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(corev1alpha1.AddToScheme(scheme))

@@ -33,7 +33,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	corev1alpha1 "github.com/pascal-sochacki/plattform/api/v1alpha1"
-	"github.com/pascal-sochacki/plattform/internal/controller/thirdparty"
+	pipeline "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	triggers "github.com/tektoncd/triggers/pkg/apis/triggers/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -76,10 +77,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = thirdparty.AddPipelineToScheme(scheme.Scheme)
+	err = pipeline.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = thirdparty.AddTriggerToScheme(scheme.Scheme)
+	err = triggers.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = corev1alpha1.AddToScheme(scheme.Scheme)

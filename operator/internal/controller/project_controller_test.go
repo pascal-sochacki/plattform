@@ -29,7 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	corev1alpha1 "github.com/pascal-sochacki/plattform/api/v1alpha1"
-	"github.com/pascal-sochacki/plattform/internal/controller/thirdparty"
+	pipeline "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 )
 
 var _ = Describe("Project Controller", func() {
@@ -107,7 +107,7 @@ var _ = Describe("Project Controller", func() {
 				NamespacedName: typeNamespacedName,
 			})
 			By("Checking if TaskTask was successfully created in the reconciliation")
-			foundTask := &thirdparty.Task{}
+			foundTask := &pipeline.Task{}
 			err = k8sClient.Get(ctx, types.NamespacedName{
 				Name:      resourceName,
 				Namespace: project.Name,
@@ -120,7 +120,7 @@ var _ = Describe("Project Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("checking if pipeline was successfully created in the reconciliation")
-			foundPipeline := &thirdparty.Pipeline{}
+			foundPipeline := &pipeline.Pipeline{}
 			err = k8sClient.Get(ctx, types.NamespacedName{
 				Name:      resourceName,
 				Namespace: project.Name,
