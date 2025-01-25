@@ -60,6 +60,10 @@ type ProjectReconciler struct {
 // +kubebuilder:rbac:groups=core.plattf0rm.de,resources=projects/finalizers,verbs=update
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=tekton.dev,resources=pipelines,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=tekton.dev,resources=task,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=tekton.dev,resources=eventlisteners,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -194,6 +198,26 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
 			create: r.CreateServiceAccountForProject,
 		},
+		{
+			obj:    &pipeline.Task{},
+			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
+			create: r.CreateTaskForProject,
+		},
+		{
+			obj:    &pipeline.Pipeline{},
+			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
+			create: r.CreatePipelineForProject,
+		},
+		{
+			obj:    &v1.ServiceAccount{},
+			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
+			create: r.CreateServiceAccountForProject,
+		},
+		{
+			obj:    &triggers.EventListener{},
+			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
+			create: r.CreateEventListenerForProject,
+		},
 	}
 
 	for i, v := range objects {
@@ -203,6 +227,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if err == nil {
 			continue
 		}
+		log.Info("error after get", "err", err.Error())
 
 		if apierrors.IsNotFound(err) {
 			log.Info("not found", "i", i, "max", len(objects))
