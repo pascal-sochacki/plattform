@@ -142,7 +142,7 @@ var _ = Describe("controller", Ordered, func() {
 				status, err := utils.Run(cmd)
 				fmt.Println(string(status))
 				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				if !strings.Contains(string(status), "project created successfully") {
+				if !strings.Contains(string(status), "Project created successfully") {
 					return fmt.Errorf("status condition with successfull should be present: %s", string(status))
 				}
 				return nil
