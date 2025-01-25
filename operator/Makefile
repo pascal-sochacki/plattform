@@ -129,6 +129,10 @@ dev-install::
 cluster-create::
 	[[ "`$(TOOLS_DIR)/kind get clusters`" =~ "$(KIND_CLUSTER)" ]] || $(TOOLS_DIR)/kind create cluster --image="kindest/node:v$(K8S_VERSION)" --name $(KIND_CLUSTER)
 
+.PHONY: cluster-delete
+cluster-delete::
+	$(TOOLS_DIR)/kind delete clusters $(KIND_CLUSTER)
+
 # Utilize Kind or modify the e2e tests to load the image locally, enabling compatibility with other vendors.
 .PHONY: test-e2e  # Run the e2e tests against a Kind k8s instance that is spun up.
 test-e2e:: dev-install cluster-create

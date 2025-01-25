@@ -33,8 +33,8 @@ const (
 	certmanagerVersion = "v1.14.4"
 	certmanagerURLTmpl = "https://github.com/jetstack/cert-manager/releases/download/%s/cert-manager.yaml"
 
-	tektonVersion = "v0.66.0"
-	tektonURLTmpl = "https://storage.googleapis.com/tekton-releases/pipeline/previous/%s/release.yaml"
+	tektonVersion = "v0.74.1"
+	tektonURLTmpl = "https://storage.googleapis.com/tekton-releases/operator/previous/%s/release.yaml"
 )
 
 func warnError(err error) {
@@ -53,6 +53,23 @@ func InstallTektonOperator() error {
 	url := fmt.Sprintf(tektonURLTmpl, tektonVersion)
 	cmd := exec.Command("kubectl", "create", "-f", url)
 	_, err := Run(cmd)
+
+	// Wait for cert-manager-webhook to be ready, which can take time if cert-manager
+	// was re-installed after uninstalling on a cluster.
+	cmd = exec.Command("kubectl", "wait", "deployment.apps/tekton-dashboard",
+		"--for", "create",
+		"--namespace", "tekton-pipelines",
+		"--timeout", "5m",
+	)
+
+	_, err = Run(cmd)
+	cmd = exec.Command("kubectl", "wait", "deployment.apps/tekton-dashboard",
+		"--for", "condition=Available",
+		"--namespace", "tekton-pipelines",
+		"--timeout", "5m",
+	)
+
+	_, err = Run(cmd)
 	return err
 }
 
@@ -128,7 +145,7 @@ func LoadImageToKindClusterWithName(name string) error {
 		cluster = v
 	}
 	kindOptions := []string{"load", "docker-image", name, "--name", cluster}
-	cmd := exec.Command("kind", kindOptions...)
+	cmd := exec.Command("./tools/bin/kind", kindOptions...)
 	_, err := Run(cmd)
 	return err
 }

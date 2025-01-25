@@ -64,18 +64,6 @@ rules:
 - apiGroups:
   - tekton.dev
   resources:
-  - eventlisteners
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - tekton.dev
-  resources:
   - pipelines
   verbs:
   - create
@@ -88,7 +76,19 @@ rules:
 - apiGroups:
   - tekton.dev
   resources:
-  - task
+  - tasks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - triggers.tekton.dev
+  resources:
+  - eventlisteners
   verbs:
   - create
   - delete
