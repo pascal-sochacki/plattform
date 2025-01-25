@@ -19,6 +19,8 @@ package e2e
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -52,8 +54,8 @@ var _ = Describe("controller", Ordered, func() {
 		By("uninstalling the cert-manager bundle")
 		utils.UninstallCertManager()
 
-		By("uninstalling the tekton bundle")
-		utils.UninstallTektonOperator()
+		//By("uninstalling the tekton bundle")
+		//utils.UninstallTektonOperator()
 
 		By("removing manager namespace")
 		cmd := exec.Command("kubectl", "delete", "ns", namespace)
@@ -62,6 +64,7 @@ var _ = Describe("controller", Ordered, func() {
 
 	Context("Operator", func() {
 		It("should run successfully", func() {
+			projectDir, _ := utils.GetProjectDir()
 			var controllerPodName string
 			var err error
 
@@ -123,6 +126,30 @@ var _ = Describe("controller", Ordered, func() {
 			}
 			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
 
+			By("validating that the example project can deploy")
+			EventuallyWithOffset(1, func() error {
+				cmd = exec.Command("kubectl", "apply", "-f", filepath.Join(projectDir,
+					"config/samples/core_v1alpha1_project.yaml"))
+				_, err = utils.Run(cmd)
+				return err
+			}, time.Minute, time.Second).Should(Succeed())
+
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			getStatus := func() error {
+				cmd = exec.Command("kubectl", "get", "projects",
+					"project-sample", "-o", "jsonpath={.status.conditions}",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "Project created successfully") {
+					return fmt.Errorf("status condition with successfull should be present: %s", string(status))
+				}
+				return nil
+			}
+			Eventually(getStatus, time.Minute, time.Second).Should(Succeed())
+
 		})
+
 	})
 })

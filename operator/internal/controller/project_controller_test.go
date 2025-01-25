@@ -29,7 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	corev1alpha1 "github.com/pascal-sochacki/plattform/api/v1alpha1"
-	"github.com/pascal-sochacki/plattform/internal/controller/thirdparty"
+	pipeline "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 )
 
 var _ = Describe("Project Controller", func() {
@@ -103,8 +103,24 @@ var _ = Describe("Project Controller", func() {
 			}, foundNamespace)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Checking if TasTask was successfully created in the reconciliation")
-			foundTask := &thirdparty.Task{}
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName,
+			})
+
+			By("Checking if ServiceAccount was successfully created in the reconciliation")
+			foundServiceAccount := &v1.ServiceAccount{}
+			err = k8sClient.Get(ctx, types.NamespacedName{
+				Name:      resourceName,
+				Namespace: project.Name,
+			}, foundServiceAccount)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName,
+			})
+
+			By("Checking if Task was successfully created in the reconciliation")
+			foundTask := &pipeline.Task{}
 			err = k8sClient.Get(ctx, types.NamespacedName{
 				Name:      resourceName,
 				Namespace: project.Name,
@@ -117,7 +133,7 @@ var _ = Describe("Project Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("checking if pipeline was successfully created in the reconciliation")
-			foundPipeline := &thirdparty.Pipeline{}
+			foundPipeline := &pipeline.Pipeline{}
 			err = k8sClient.Get(ctx, types.NamespacedName{
 				Name:      resourceName,
 				Namespace: project.Name,
@@ -128,13 +144,21 @@ var _ = Describe("Project Controller", func() {
 				NamespacedName: typeNamespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName,
+			})
+			Expect(err).NotTo(HaveOccurred())
 
 			By("Checking if Condition was successfully updated in the reconciliation")
 			project = &corev1alpha1.Project{}
 			err = k8sClient.Get(ctx, typeNamespacedName, project)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(len(project.Status.Conditions)).To(Equal(1))
-			Expect(project.Status.Conditions[0].Message).To(Equal("Project created successfully"))
+			Expect(len(project.Status.Conditions)).To(Equal(2))
+			Expect(project.Status.Conditions[1].Message).To(Equal("Project created successfully"))
 
 		})
 	})
