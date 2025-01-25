@@ -344,8 +344,11 @@ func (r *ProjectReconciler) CreatePipelineForProject(project *corev1alpha1.Proje
 					},
 					Params: pipeline.Params{
 						pipeline.Param{
-							Name:  "username",
-							Value: pipeline.ParamValue{StringVal: "$(params.username)"},
+							Name: "username",
+							Value: pipeline.ParamValue{
+								Type:      "string",
+								StringVal: "$(params.username)",
+							},
 						},
 					},
 				},
