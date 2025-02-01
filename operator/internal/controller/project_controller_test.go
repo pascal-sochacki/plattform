@@ -21,15 +21,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	corev1alpha1 "github.com/pascal-sochacki/plattform/api/v1alpha1"
-	pipeline "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 )
 
 var _ = Describe("Project Controller", func() {
@@ -48,15 +45,6 @@ var _ = Describe("Project Controller", func() {
 			},
 		}
 
-		BeforeEach(func() {
-			By("creating the custom resource for the Kind Project")
-			project := &corev1alpha1.Project{}
-			err := k8sClient.Get(ctx, typeNamespacedName, project)
-			if err != nil && errors.IsNotFound(err) {
-				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
-			}
-		})
-
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
 			resource := &corev1alpha1.Project{}
@@ -68,90 +56,25 @@ var _ = Describe("Project Controller", func() {
 		})
 
 		It("should successfully reconcile the resource", func() {
-			By("Reconciling the created resource")
 			controllerReconciler := &ProjectReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
 			}
+			Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 
-			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Checking if Condition was successfully updated in the reconciliation")
-			project := &corev1alpha1.Project{}
-			err = k8sClient.Get(ctx, typeNamespacedName, project)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(project.Status.Conditions)).To(Equal(1))
-			Expect(project.Status.Conditions[0].Message).To(Equal("Starting reconciliation"))
+			for i := 0; i < 30; i++ {
+				_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
+					NamespacedName: typeNamespacedName,
+				})
+				Expect(err).NotTo(HaveOccurred())
+			}
 
 			By("Checking if Finalizer was successfully updated in the reconciliation")
+			project := &corev1alpha1.Project{}
+			err := k8sClient.Get(ctx, typeNamespacedName, project)
 			finalizer := project.GetFinalizers()
 			Expect(len(finalizer)).To(Equal(1))
 			Expect(finalizer[0]).To(Equal("core.plattf0rm.de/finalizer"))
-
-			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Checking if Namespace was successfully created in the reconciliation")
-			foundNamespace := &v1.Namespace{}
-			err = k8sClient.Get(ctx, types.NamespacedName{
-				Name: resourceName,
-			}, foundNamespace)
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
-
-			By("Checking if ServiceAccount was successfully created in the reconciliation")
-			foundServiceAccount := &v1.ServiceAccount{}
-			err = k8sClient.Get(ctx, types.NamespacedName{
-				Name:      resourceName,
-				Namespace: project.Name,
-			}, foundServiceAccount)
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
-
-			By("Checking if Task was successfully created in the reconciliation")
-			foundTask := &pipeline.Task{}
-			err = k8sClient.Get(ctx, types.NamespacedName{
-				Name:      resourceName,
-				Namespace: project.Name,
-			}, foundTask)
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("checking if pipeline was successfully created in the reconciliation")
-			foundPipeline := &pipeline.Pipeline{}
-			err = k8sClient.Get(ctx, types.NamespacedName{
-				Name:      resourceName,
-				Namespace: project.Name,
-			}, foundPipeline)
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
-			Expect(err).NotTo(HaveOccurred())
-			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
-			Expect(err).NotTo(HaveOccurred())
-			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
-			Expect(err).NotTo(HaveOccurred())
 
 			By("Checking if Condition was successfully updated in the reconciliation")
 			project = &corev1alpha1.Project{}

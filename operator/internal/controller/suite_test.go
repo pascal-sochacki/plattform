@@ -61,7 +61,6 @@ var _ = BeforeSuite(func() {
 			filepath.Join("..", "..", "config", "crd", "thirdparty"),
 		},
 		ErrorIfCRDPathMissing: true,
-
 		// The BinaryAssetsDirectory is only required if you want to run the tests directly
 		// without call the makefile target test. If not informed it will look for the
 		// default path defined in controller-runtime which is /usr/local/kubebuilder/.
