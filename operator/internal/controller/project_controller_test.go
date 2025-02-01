@@ -22,8 +22,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -57,26 +56,22 @@ var _ = Describe("Project Controller", func() {
 		})
 
 		It("should successfully reconcile the resource", func() {
-			k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-				Scheme: scheme.Scheme,
-			})
-			Expect(err).ToNot(HaveOccurred())
-			err = (&ProjectReconciler{
-				Client: k8sManager.GetClient(),
-				Scheme: scheme.Scheme,
-			}).SetupWithManager(k8sManager)
-			Expect(err).ToNot(HaveOccurred())
-
-			go func() {
-				defer GinkgoRecover()
-				err = k8sManager.Start(ctx)
-				Expect(err).ToNot(HaveOccurred(), "failed to run manager")
-			}()
+			controllerReconciler := &ProjectReconciler{
+				Client: k8sClient,
+				Scheme: k8sClient.Scheme(),
+			}
 			Expect(k8sClient.Create(ctx, resource)).To(Succeed())
+
+			for i := 0; i < 30; i++ {
+				_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
+					NamespacedName: typeNamespacedName,
+				})
+				Expect(err).NotTo(HaveOccurred())
+			}
 
 			By("Checking if Finalizer was successfully updated in the reconciliation")
 			project := &corev1alpha1.Project{}
-			err = k8sClient.Get(ctx, typeNamespacedName, project)
+			err := k8sClient.Get(ctx, typeNamespacedName, project)
 			finalizer := project.GetFinalizers()
 			Expect(len(finalizer)).To(Equal(1))
 			Expect(finalizer[0]).To(Equal("core.plattf0rm.de/finalizer"))
