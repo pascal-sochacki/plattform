@@ -29,7 +29,7 @@ export const pipelineRouter = createTRPCRouter({
           apiVersion: "tekton.dev/v1beta1",
           kind: "PipelineRun",
           metadata: {
-            name: `${input.project}-${new Date().getSeconds()}`,
+            generateName: `${input.project}`,
             namespace: input.project,
           },
           spec: {

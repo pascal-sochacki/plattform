@@ -18,11 +18,9 @@ package controller
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	v1 "k8s.io/api/core/v1"
-	rbac "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	pipeline "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
-	triggers "github.com/tektoncd/triggers/pkg/apis/triggers/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	corev1alpha1 "github.com/pascal-sochacki/plattform/api/v1alpha1"
@@ -62,13 +59,8 @@ type ProjectReconciler struct {
 // +kubebuilder:rbac:groups=core.plattf0rm.de,resources=projects/finalizers,verbs=update
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tekton.dev,resources=pipelines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tekton.dev,resources=tasks,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=triggers.tekton.dev,resources=eventlisteners,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=triggers.tekton.dev,resources=triggertemplates,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=triggers.tekton.dev,resources=triggerbindings,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings;clusterrolebindings;roles;clusterroles,verbs=*
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -201,11 +193,6 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			create: r.CreateNamespaceForProject,
 		},
 		{
-			obj:    &v1.ServiceAccount{},
-			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
-			create: r.CreateServiceAccountForProject,
-		},
-		{
 			obj:    &pipeline.Task{},
 			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
 			create: r.CreateTaskForProject,
@@ -214,36 +201,6 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			obj:    &pipeline.Pipeline{},
 			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
 			create: r.CreatePipelineForProject,
-		},
-		{
-			obj:    &v1.ServiceAccount{},
-			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
-			create: r.CreateServiceAccountForProject,
-		},
-		{
-			obj:    &rbac.RoleBinding{},
-			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
-			create: r.CreateRoleBinding,
-		},
-		{
-			obj:    &rbac.ClusterRoleBinding{},
-			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
-			create: r.CreateClusterRoleBinding,
-		},
-		{
-			obj:    &triggers.EventListener{},
-			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
-			create: r.CreateEventListenerForProject,
-		},
-		{
-			obj:    &triggers.TriggerTemplate{},
-			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
-			create: r.CreateTriggerTemplate,
-		},
-		{
-			obj:    &triggers.TriggerBinding{},
-			key:    types.NamespacedName{Name: project.Name, Namespace: project.Name},
-			create: r.CreateTriggerBinding,
 		},
 	}
 
@@ -379,150 +336,6 @@ func (r *ProjectReconciler) CreatePipelineForProject(project *corev1alpha1.Proje
 		},
 	}
 	return pipeline
-}
-
-func (r *ProjectReconciler) CreateServiceAccountForProject(project *corev1alpha1.Project) client.Object {
-	serviceAccount := &v1.ServiceAccount{
-		ObjectMeta: *r.createObjectMeta(project),
-	}
-	return serviceAccount
-}
-
-func (r *ProjectReconciler) CreateRoleBinding(project *corev1alpha1.Project) client.Object {
-	serviceaccount := r.CreateServiceAccountForProject(project)
-	return &rbac.RoleBinding{
-		ObjectMeta: *r.createObjectMeta(project),
-		Subjects: []rbac.Subject{
-			{
-				Kind: "ServiceAccount",
-				Name: serviceaccount.GetName(),
-			},
-		},
-		RoleRef: rbac.RoleRef{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "ClusterRole",
-			Name:     "tekton-triggers-eventlistener-roles",
-		},
-	}
-}
-
-func (r *ProjectReconciler) CreateClusterRoleBinding(project *corev1alpha1.Project) client.Object {
-	serviceaccount := r.CreateServiceAccountForProject(project)
-	namespace := r.CreateNamespaceForProject(project)
-	return &rbac.ClusterRoleBinding{
-		ObjectMeta: *r.createObjectMeta(project),
-		Subjects: []rbac.Subject{
-			{
-				Namespace: namespace.GetName(),
-				Kind:      "ServiceAccount",
-				Name:      serviceaccount.GetName(),
-			},
-		},
-		RoleRef: rbac.RoleRef{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "ClusterRole",
-			Name:     "tekton-triggers-eventlistener-clusterroles",
-		},
-	}
-}
-
-func (r *ProjectReconciler) CreateEventListenerForProject(project *corev1alpha1.Project) client.Object {
-	eventListener := &triggers.EventListener{
-
-		ObjectMeta: *r.createObjectMeta(project),
-		Spec: triggers.EventListenerSpec{
-			ServiceAccountName: project.Name,
-			Triggers: []triggers.EventListenerTrigger{
-				{
-					Name: project.Name,
-					Bindings: []*triggers.EventListenerBinding{
-						&triggers.TriggerSpecBinding{
-							Ref: project.Name,
-						},
-					},
-					Template: &triggers.TriggerSpecTemplate{
-						Ref: &project.Name,
-					},
-				},
-			},
-		},
-	}
-	return eventListener
-}
-
-func (r *ProjectReconciler) CreateTriggerTemplate(project *corev1alpha1.Project) client.Object {
-	projectPipeline := r.CreatePipelineForProject(project)
-	template, _ := json.Marshal(struct {
-		metav1.TypeMeta   `json:",inline"`
-		metav1.ObjectMeta `json:"metadata,omitempty"`
-		Spec              struct {
-			PipelineRef *pipeline.PipelineRef `json:"pipelineRef,omitempty"`
-			Params      pipeline.Params       `json:"params,omitempty"`
-		} `json:"spec,omitempty"`
-	}{
-
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PipelineRun",
-			APIVersion: "tekton.dev/v1beta1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "hello-goodbye-run-",
-		},
-		Spec: struct {
-			PipelineRef *pipeline.PipelineRef "json:\"pipelineRef,omitempty\""
-			Params      pipeline.Params       "json:\"params,omitempty\""
-		}{
-
-			PipelineRef: &pipeline.PipelineRef{
-				Name: projectPipeline.GetName(),
-			},
-			Params: pipeline.Params{
-				pipeline.Param{
-					Name: "username",
-					Value: pipeline.ParamValue{
-						Type:      "string",
-						StringVal: "$(tt.params.username)",
-					},
-				},
-			},
-		},
-	})
-
-	log := log.FromContext(context.Background())
-	log.Info(string(template))
-
-	eventListener := &triggers.TriggerTemplate{
-		ObjectMeta: *r.createObjectMeta(project),
-		Spec: triggers.TriggerTemplateSpec{
-			Params: []triggers.ParamSpec{
-				{
-					Name: "username",
-				},
-			},
-			ResourceTemplates: []triggers.TriggerResourceTemplate{
-				{
-					RawExtension: runtime.RawExtension{
-						Raw: template,
-					},
-				},
-			},
-		},
-	}
-	return eventListener
-}
-
-func (r *ProjectReconciler) CreateTriggerBinding(project *corev1alpha1.Project) client.Object {
-	return &triggers.TriggerBinding{
-		ObjectMeta: *r.createObjectMeta(project),
-		Spec: triggers.TriggerBindingSpec{
-			Params: []triggers.Param{
-				{
-					Name:  "username",
-					Value: "$(body.username)",
-				},
-			},
-		},
-	}
 }
 
 func (r *ProjectReconciler) UpdateCondition(ctx context.Context, project *corev1alpha1.Project, condition metav1.Condition) error {

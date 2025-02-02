@@ -6,5 +6,5 @@ export default async function Page({
   params: Promise<{ name: string }>;
 }) {
   const name = (await params).name;
-  return <RunPipelineButton />;
+  return <RunPipelineButton name={name} />;
 }
