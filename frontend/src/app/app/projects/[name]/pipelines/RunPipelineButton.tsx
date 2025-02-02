@@ -2,11 +2,11 @@
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 
-export function RunPipelineButton() {
+export function RunPipelineButton(props: { name: string }) {
   const create = api.pipeline.createPipelineRun.useMutation();
 
   return (
-    <Button onClick={() => create.mutate({ project: "pascal-homelab-league" })}>
+    <Button onClick={() => create.mutate({ project: props.name })}>
       Run Pipeline
     </Button>
   );
