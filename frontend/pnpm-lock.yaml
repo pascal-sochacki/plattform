@@ -18,8 +18,8 @@ importers:
         specifier: ^42.0.1
         version: 42.0.1
       '@hookform/resolvers':
-        specifier: ^3.9.1
-        version: 3.9.1(react-hook-form@7.54.2(react@18.3.1))
+        specifier: ^4.0.0
+        version: 4.0.0(react-hook-form@7.54.2(react@18.3.1))
       '@kubernetes/client-node':
         specifier: ^1.0.0
         version: 1.0.0
@@ -693,8 +693,8 @@ packages:
     resolution: {integrity: sha512-gMszyYrGPL5FsbHQBM+2MDYF1H5SN83J0LkO0AylQFoNGa0y4guVIRpcufyw2hOn/jyw5VF98DTJU1oCgLcr2w==}
     engines: {node: '>=18.20.0'}
 
-  '@hookform/resolvers@3.9.1':
-    resolution: {integrity: sha512-ud2HqmGBM0P0IABqoskKWI6PEf6ZDDBZkFqe2Vnl+mTHCEHzr3ISjjZyCwTjC/qpL25JC9aIDkloQejvMeq0ug==}
+  '@hookform/resolvers@4.0.0':
+    resolution: {integrity: sha512-93ZueVlTaeMF0pRbrLbcnzrxeb2mGA/xyO3RgfrsKs5OCtcfjoWcdjBJm+N7096Jfg/JYlGPjuyQCgqVEodSTg==}
     peerDependencies:
       react-hook-form: ^7.0.0
 
@@ -4304,7 +4304,7 @@ snapshots:
       '@gitbeaker/core': 42.0.1
       '@gitbeaker/requester-utils': 42.0.1
 
-  '@hookform/resolvers@3.9.1(react-hook-form@7.54.2(react@18.3.1))':
+  '@hookform/resolvers@4.0.0(react-hook-form@7.54.2(react@18.3.1))':
     dependencies:
       react-hook-form: 7.54.2(react@18.3.1)
 

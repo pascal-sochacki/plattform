@@ -24,7 +24,7 @@
     "@auth/drizzle-adapter": "^1.7.2",
     "@emotion/styled": "^11.14.0",
     "@gitbeaker/rest": "^42.0.1",
-    "@hookform/resolvers": "^3.9.1",
+    "@hookform/resolvers": "^4.0.0",
     "@kubernetes/client-node": "^1.0.0",
     "@mui/material": "^6.3.1",
     "@perses-dev/components": "0.50.0-rc.1",
