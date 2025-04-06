@@ -1,11 +1,10 @@
 "use client";
-import { TracingGanttChart } from "@perses-dev/panels-plugin";
 import {
-  ChartsProvider,
-  generateChartsTheme,
-  getTheme,
-  SnackbarProvider,
-} from "@perses-dev/components";
+  TimeSeriesChart,
+  TraceTable,
+  TracingGanttChart,
+} from "@perses-dev/panels-plugin";
+import { SnackbarProvider } from "@perses-dev/components";
 import {
   DataQueriesProvider,
   dynamicImportPluginLoader,
@@ -13,7 +12,6 @@ import {
   PluginRegistry,
   TimeRangeProvider,
 } from "@perses-dev/plugin-system";
-import { ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   DatasourceStoreProvider,
@@ -25,8 +23,11 @@ import {
   type DashboardResource,
   type GlobalDatasourceResource,
   type DatasourceResource,
+  DatasourceSelector,
 } from "@perses-dev/core";
 import { type DatasourceApi } from "@perses-dev/dashboards";
+import PersesChartWrapper from "./PersesChartWrapper";
+import tempoResource from "@perses-dev/tempo-plugin/plugin.json";
 
 const fakeDatasource: GlobalDatasourceResource = {
   kind: "GlobalDatasource",
@@ -36,41 +37,71 @@ const fakeDatasource: GlobalDatasourceResource = {
     plugin: {
       kind: "PrometheusDatasource",
       spec: {
-        directUrl: "https://prometheus.demo.do.prometheus.io",
+        directUrl: "http://localhost:9090",
+      },
+    },
+  },
+};
+
+const fakeTempoDatasource: GlobalDatasourceResource = {
+  kind: "GlobalDatasource",
+  metadata: {
+    name: "tempo", // Unique identifier for the Tempo datasource
+  },
+  spec: {
+    default: false,
+    plugin: {
+      kind: "TempoDatasource",
+      spec: {
+        directUrl: "http://localhost:3200", // Replace with your Tempo API URL
+        // Alternatively, configure a proxy if needed:
       },
     },
   },
 };
 
 class DatasourceApiImpl implements DatasourceApi {
-  getDatasource(): Promise<DatasourceResource | undefined> {
+  getDatasource(
+    project: string,
+    selector: DatasourceSelector,
+  ): Promise<DatasourceResource | undefined> {
+    console.log(project, selector);
     return Promise.resolve(undefined);
   }
 
-  getGlobalDatasource(): Promise<GlobalDatasourceResource | undefined> {
-    return Promise.resolve(fakeDatasource);
+  getGlobalDatasource(
+    selector: DatasourceSelector,
+  ): Promise<GlobalDatasourceResource | undefined> {
+    console.log("getGlobalDatasource");
+    console.log(selector);
+    return Promise.resolve(fakeTempoDatasource);
   }
 
-  listDatasources(): Promise<DatasourceResource[]> {
+  listDatasources(
+    project: string,
+    pluginKind?: string,
+  ): Promise<DatasourceResource[]> {
+    console.log(project, pluginKind);
     return Promise.resolve([]);
   }
 
-  listGlobalDatasources(): Promise<GlobalDatasourceResource[]> {
-    return Promise.resolve([fakeDatasource]);
-  }
-
-  buildProxyUrl(): string {
-    return "/prometheus";
+  listGlobalDatasources(
+    pluginKind?: string,
+  ): Promise<GlobalDatasourceResource[]> {
+    console.log(pluginKind);
+    return Promise.resolve([fakeDatasource, fakeTempoDatasource]);
   }
 }
 
 export default function Page() {
-  const muiTheme = getTheme("light");
-  const chartsTheme = generateChartsTheme(muiTheme, {});
   const pluginLoader = dynamicImportPluginLoader([
     {
       resource: prometheusResource as PluginModuleResource,
       importPlugin: () => import("@perses-dev/prometheus-plugin"),
+    },
+    {
+      resource: tempoResource as PluginModuleResource,
+      importPlugin: () => import("@perses-dev/tempo-plugin"),
     },
     {
       resource: panelsResource as PluginModuleResource,
@@ -92,53 +123,52 @@ export default function Page() {
     spec: {},
   } as DashboardResource;
   return (
-    <ThemeProvider theme={muiTheme}>
-      <ChartsProvider chartsTheme={chartsTheme}>
-        <SnackbarProvider
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-          variant="default"
-          content=""
+    <PersesChartWrapper>
+      <SnackbarProvider
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        variant="default"
+        content=""
+      >
+        <PluginRegistry
+          pluginLoader={pluginLoader}
+          defaultPluginKinds={{
+            Panel: "TracingGanttChart",
+            TraceQuery: "TempoTraceQuery",
+            TimeSeriesQuery: "PrometheusTimeSeriesQuery",
+          }}
         >
-          <PluginRegistry
-            pluginLoader={pluginLoader}
-            defaultPluginKinds={{
-              Panel: "TimeSeriesChart",
-              TimeSeriesQuery: "PrometheusTimeSeriesQuery",
-            }}
-          >
-            <QueryClientProvider client={queryClient}>
-              <TimeRangeProvider
-                refreshInterval="0s"
-                timeRange={{ pastDuration: "30m" }}
-              >
-                <VariableProvider>
-                  <DatasourceStoreProvider
-                    dashboardResource={fakeDashboard}
-                    datasourceApi={fakeDatasourceApi}
+          <QueryClientProvider client={queryClient}>
+            <TimeRangeProvider
+              refreshInterval="0s"
+              timeRange={{ pastDuration: "30m" }}
+            >
+              <VariableProvider>
+                <DatasourceStoreProvider
+                  dashboardResource={fakeDashboard}
+                  datasourceApi={fakeDatasourceApi}
+                >
+                  <DataQueriesProvider
+                    definitions={[
+                      {
+                        kind: "TempoTraceQuery",
+                        spec: { query: `209f4d8a9e7fb7c7422b5bfc1a54c57` },
+                      },
+                    ]}
                   >
-                    <DataQueriesProvider
-                      definitions={[
-                        {
-                          kind: "PrometheusTimeSeriesQuery",
-                          spec: { query: `up{job="prometheus"}` },
-                        },
-                      ]}
-                    >
-                      <TracingGanttChart.PanelComponent
-                        contentDimensions={{
-                          width: 1200,
-                          height: 400,
-                        }}
-                        spec={{}}
-                      />
-                    </DataQueriesProvider>
-                  </DatasourceStoreProvider>
-                </VariableProvider>
-              </TimeRangeProvider>
-            </QueryClientProvider>
-          </PluginRegistry>
-        </SnackbarProvider>
-      </ChartsProvider>
-    </ThemeProvider>
+                    <TracingGanttChart.PanelComponent
+                      contentDimensions={{
+                        width: 1200,
+                        height: 400,
+                      }}
+                      spec={{}}
+                    />
+                  </DataQueriesProvider>
+                </DatasourceStoreProvider>
+              </VariableProvider>
+            </TimeRangeProvider>
+          </QueryClientProvider>
+        </PluginRegistry>
+      </SnackbarProvider>
+    </PersesChartWrapper>
   );
 }

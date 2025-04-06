@@ -27,21 +27,9 @@ export default function ProjectHeader() {
         </Link>
         <Button>Logs</Button>
         <Button>Metrics</Button>
-        <Button>Traces</Button>
-        <Popover>
-          <PopoverTrigger className="ml-auto">
-            <Button variant={"destructive"}>Delete Project</Button>
-          </PopoverTrigger>
-          <PopoverContent>
-            <div>Are you sure?</div>
-            <Button
-              variant={"destructive"}
-              onClick={() => void deleteProject.mutate({ name: params.name })}
-            >
-              Yes!
-            </Button>
-          </PopoverContent>
-        </Popover>
+        <Link href={`/app/projects/${params.name}/traces`}>
+          <Button>Traces</Button>
+        </Link>
       </div>
       <Separator />
     </div>
