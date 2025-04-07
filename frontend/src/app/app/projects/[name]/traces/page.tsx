@@ -24,6 +24,7 @@ import {
 import { type DatasourceApi } from "@perses-dev/dashboards";
 import tempoResource from "@perses-dev/tempo-plugin/plugin.json";
 import PersesChartWrapper from "../_components/PersesChartWrapper";
+import { useParams } from "next/navigation";
 
 const fakeDatasource: GlobalDatasourceResource = {
   kind: "GlobalDatasource",
@@ -90,6 +91,7 @@ class DatasourceApiImpl implements DatasourceApi {
 }
 
 export default function Page() {
+  const params = useParams<{ name: string }>();
   const pluginLoader = dynamicImportPluginLoader([
     {
       resource: prometheusResource as PluginModuleResource,
@@ -152,6 +154,9 @@ export default function Page() {
                     ]}
                   >
                     <TraceTable.PanelComponent
+                      traceLink={(id) =>
+                        `/app/projects/${params.name}/traces/${id.traceId}`
+                      }
                       contentDimensions={{
                         width: 1200,
                         height: 400,
