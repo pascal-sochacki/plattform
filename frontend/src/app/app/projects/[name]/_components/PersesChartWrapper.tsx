@@ -31,7 +31,11 @@ function HackRouter({ children }: { children: React.ReactNode }) {
       location={""}
       navigator={{
         createHref: (to) => {
-          return "";
+          if (typeof to === "string") {
+            return to;
+          } else {
+            return to.pathname ?? "";
+          }
         },
         go: () => "",
         push(to, state, opts) {
