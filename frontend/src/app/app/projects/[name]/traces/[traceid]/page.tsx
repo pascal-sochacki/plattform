@@ -1,5 +1,5 @@
 "use client";
-import { TraceTable, TracingGanttChart } from "@perses-dev/panels-plugin";
+import { TracingGanttChart } from "@perses-dev/panels-plugin";
 import { SnackbarProvider } from "@perses-dev/components";
 import {
   DataQueriesProvider,
@@ -23,7 +23,8 @@ import {
 } from "@perses-dev/core";
 import { type DatasourceApi } from "@perses-dev/dashboards";
 import tempoResource from "@perses-dev/tempo-plugin/plugin.json";
-import PersesChartWrapper from "../_components/PersesChartWrapper";
+import { useParams } from "next/navigation";
+import PersesChartWrapper from "../../_components/PersesChartWrapper";
 
 const fakeDatasource: GlobalDatasourceResource = {
   kind: "GlobalDatasource",
@@ -90,6 +91,8 @@ class DatasourceApiImpl implements DatasourceApi {
 }
 
 export default function Page() {
+  const params = useParams<{ traceid: string }>();
+
   const pluginLoader = dynamicImportPluginLoader([
     {
       resource: prometheusResource as PluginModuleResource,
@@ -147,11 +150,11 @@ export default function Page() {
                     definitions={[
                       {
                         kind: "TempoTraceQuery",
-                        spec: { query: `{}` },
+                        spec: { query: params.traceid },
                       },
                     ]}
                   >
-                    <TraceTable.PanelComponent
+                    <TracingGanttChart.PanelComponent
                       contentDimensions={{
                         width: 1200,
                         height: 400,

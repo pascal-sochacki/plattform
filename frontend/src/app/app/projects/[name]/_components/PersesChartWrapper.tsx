@@ -6,15 +6,19 @@ import {
   getTheme,
 } from "@perses-dev/components";
 import { ThemeProvider } from "@mui/material";
+import { BrowserRouter } from "react-router-dom";
 
 function PersesChartWrapper({ children }: { children: React.ReactNode }) {
   const muiTheme = getTheme("light");
   const chartsTheme = generateChartsTheme(muiTheme, {});
+  console.log(chartsTheme);
 
   return (
-    <ThemeProvider theme={muiTheme}>
-      <ChartsProvider chartsTheme={chartsTheme}>{children}</ChartsProvider>
-    </ThemeProvider>
+    <BrowserRouter>
+      <ThemeProvider theme={muiTheme}>
+        <ChartsProvider chartsTheme={chartsTheme}>{children}</ChartsProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   );
 }
 

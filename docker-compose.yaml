@@ -71,6 +71,16 @@ services:
     environment:
       - MEMCACHED_MAX_MEMORY=64m # Set the maximum memory usage
       - MEMCACHED_THREADS=4 # Number of threads to use
+  perses:
+    image: persesdev/perses
+    ports:
+      - "8081:8080"
+    command:
+      - "--config"
+      - "/etc/perses/config/config.yaml"
+    volumes:
+      - ./perses/config.yaml:/etc/perses/config/config.yaml
+      - ./perses/provisioning:/etc/perses/provisioning
   tempo:
     image: *tempoImage
     command: ["-config.file=/etc/tempo.yaml"]

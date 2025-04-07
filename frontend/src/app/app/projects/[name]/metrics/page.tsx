@@ -1,5 +1,5 @@
 "use client";
-import { TimeSeriesChart } from "@perses-dev/panels-plugin";
+import { BarChart, TimeSeriesChart } from "@perses-dev/panels-plugin";
 import { SnackbarProvider } from "@perses-dev/components";
 import {
   DataQueriesProvider,
@@ -21,7 +21,7 @@ import {
   type DatasourceResource,
 } from "@perses-dev/core";
 import { type DatasourceApi } from "@perses-dev/dashboards";
-import PersesChartWrapper from "../traces/PersesChartWrapper";
+import PersesChartWrapper from "../_components/PersesChartWrapper";
 
 const fakeDatasource: GlobalDatasourceResource = {
   kind: "GlobalDatasource",
@@ -31,7 +31,8 @@ const fakeDatasource: GlobalDatasourceResource = {
     plugin: {
       kind: "PrometheusDatasource",
       spec: {
-        directUrl: "http://localhost:9090",
+        directUrl:
+          "http://localhost:8081/proxy/globaldatasources/prometheusdemo",
       },
     },
   },
@@ -121,12 +122,7 @@ export default function Page() {
                         width: 1200,
                         height: 400,
                       }}
-                      spec={{
-                        legend: {
-                          position: "bottom",
-                          size: "medium",
-                        },
-                      }}
+                      spec={{}}
                     />
                   </DataQueriesProvider>
                 </DatasourceStoreProvider>
