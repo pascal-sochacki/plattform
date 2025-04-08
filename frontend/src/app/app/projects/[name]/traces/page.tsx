@@ -1,14 +1,24 @@
 "use client";
-import { TraceTable, TracingGanttChart } from "@perses-dev/panels-plugin";
+import { TraceTable } from "@perses-dev/panels-plugin";
 import { SnackbarProvider } from "@perses-dev/components";
 import {
+  DataQueriesContext,
   DataQueriesProvider,
   dynamicImportPluginLoader,
   type PluginModuleResource,
   PluginRegistry,
   TimeRangeProvider,
+  TraceQueryDefinition,
+  transformQueryResults,
+  useDataQueriesContext,
+  useTimeRange,
 } from "@perses-dev/plugin-system";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQueries,
+  UseQueryResult,
+} from "@tanstack/react-query";
 import {
   DatasourceStoreProvider,
   VariableProvider,
@@ -20,6 +30,7 @@ import {
   type GlobalDatasourceResource,
   type DatasourceResource,
   DatasourceSelector,
+  TraceData,
 } from "@perses-dev/core";
 import { type DatasourceApi } from "@perses-dev/dashboards";
 import tempoResource from "@perses-dev/tempo-plugin/plugin.json";
@@ -105,6 +116,35 @@ export default function Page() {
       resource: panelsResource as PluginModuleResource,
       importPlugin: () => import("@perses-dev/panels-plugin"),
     },
+    {
+      resource: {
+        kind: "PluginModule",
+        metadata: {
+          name: "Clickhouse",
+        },
+        spec: {
+          plugins: [
+            {
+              pluginType: "ClickhouseQuery",
+              kind: "ClickhouseTraceQuery",
+              display: {
+                name: "Tempo Trace Query",
+                description: "",
+              },
+            },
+            {
+              pluginType: "Datasource",
+              kind: "ClickhouseDatasource",
+              display: {
+                name: "Clickhouse Datasource",
+                description: "",
+              },
+            },
+          ],
+        },
+      } as PluginModuleResource,
+      importPlugin: () => import("@perses-dev/panels-plugin"),
+    },
   ]);
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -153,6 +193,7 @@ export default function Page() {
                       },
                     ]}
                   >
+                    <ViewerTest />
                     <TraceTable.PanelComponent
                       traceLink={(id) =>
                         `/app/projects/${params.name}/traces/${id.traceId}`
@@ -164,6 +205,19 @@ export default function Page() {
                       spec={{}}
                     />
                   </DataQueriesProvider>
+                  <Test>
+                    <ViewerTest />
+                    <TraceTable.PanelComponent
+                      traceLink={(id) =>
+                        `/app/projects/${params.name}/traces/${id.traceId}`
+                      }
+                      contentDimensions={{
+                        width: 1200,
+                        height: 400,
+                      }}
+                      spec={{}}
+                    />
+                  </Test>
                 </DatasourceStoreProvider>
               </VariableProvider>
             </TimeRangeProvider>
@@ -172,4 +226,89 @@ export default function Page() {
       </SnackbarProvider>
     </PersesChartWrapper>
   );
+}
+
+function ViewerTest() {
+  const a = useDataQueriesContext();
+  console.log("ViewerTest", a.queryResults);
+  return <></>;
+}
+function Test(props: { children: React.ReactNode }) {
+  const traceResults = useTempoTraceQueries([
+    {
+      kind: "TraceQuery",
+      spec: {
+        plugin: {
+          kind: "TempoTraceQuery",
+          spec: { query: `{}` },
+        },
+      },
+    },
+  ]);
+  console.log("result", traceResults);
+  const a = transformQueryResults(traceResults, [
+    {
+      kind: "TraceQuery",
+      spec: {
+        plugin: {
+          kind: "TempoTraceQuery",
+          spec: { query: `{}` },
+        },
+      },
+    },
+  ]);
+  console.log("a", a);
+
+  return (
+    <DataQueriesContext.Provider
+      value={{
+        isFetching: false,
+        isLoading: false,
+        queryResults: a,
+        refetchAll: () => {},
+        errors: [],
+      }}
+    >
+      {props.children}
+    </DataQueriesContext.Provider>
+  );
+}
+
+export function useTempoTraceQueries(
+  definitions: TraceQueryDefinition[],
+): Array<UseQueryResult<TraceData>> {
+  const { absoluteTimeRange } = useTimeRange();
+
+  // useQueries() handles data fetching from query plugins (e.g. traceQL queries, promQL queries)
+  // https://tanstack.com/query/v4/docs/react/reference/useQuery
+  return useQueries({
+    queries: definitions.map((definition) => {
+      const queryKey = [definition, absoluteTimeRange] as const; // `queryKey` watches and reruns `queryFn` if keys in the array change
+      return {
+        queryKey: queryKey,
+        queryFn: async (): Promise<TraceData> => {
+          return {
+            metadata: {
+              executedQueryString: "asd",
+            },
+            searchResult: [
+              {
+                traceId: "123",
+                rootServiceName: "12",
+                rootTraceName: "123",
+                startTimeUnixMs: 0,
+                durationMs: 100,
+                serviceStats: {},
+              },
+            ],
+          };
+        },
+
+        // The data returned by getTraceData() contains circular dependencies (a span has a reference to the parent span, and the parent span has an array of child spans)
+        // Therefore structuralSharing must be turned off, otherwise the query is stuck in the 'fetching' state on re-fetch.
+        // Ref: https://github.com/TanStack/query/issues/6954#issuecomment-1962321426
+        structuralSharing: false,
+      };
+    }),
+  });
 }
