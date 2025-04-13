@@ -10,7 +10,8 @@ import {
   TimeRangeProvider,
   TraceQueryDefinition,
   transformQueryResults,
-  useDataQueriesContext,
+  useListPluginMetadata,
+  useQueryType,
   useTimeRange,
 } from "@perses-dev/plugin-system";
 import {
@@ -68,12 +69,29 @@ const fakeTempoDatasource: GlobalDatasourceResource = {
   },
 };
 
+const fakeClickhouseDatasource: GlobalDatasourceResource = {
+  kind: "GlobalDatasource",
+  metadata: {
+    name: "clickhouse", // Unique identifier for the Tempo datasource
+  },
+  spec: {
+    default: false,
+    plugin: {
+      kind: "ClickhouseDatasource",
+      spec: {
+        directUrl: "http://localhost:3000/api/proxy/tempo", // Replace with your Tempo API URL
+        // Alternatively, configure a proxy if needed:
+      },
+    },
+  },
+};
+
 class DatasourceApiImpl implements DatasourceApi {
   getDatasource(
     project: string,
     selector: DatasourceSelector,
   ): Promise<DatasourceResource | undefined> {
-    console.log(project, selector);
+    console.log("getDatasource", project, selector);
     return Promise.resolve(undefined);
   }
 
@@ -82,22 +100,26 @@ class DatasourceApiImpl implements DatasourceApi {
   ): Promise<GlobalDatasourceResource | undefined> {
     console.log("getGlobalDatasource");
     console.log(selector);
-    return Promise.resolve(fakeTempoDatasource);
+    return Promise.resolve(fakeClickhouseDatasource);
   }
 
   listDatasources(
     project: string,
     pluginKind?: string,
   ): Promise<DatasourceResource[]> {
-    console.log(project, pluginKind);
+    console.log("list", project, pluginKind);
     return Promise.resolve([]);
   }
 
   listGlobalDatasources(
     pluginKind?: string,
   ): Promise<GlobalDatasourceResource[]> {
-    console.log(pluginKind);
-    return Promise.resolve([fakeDatasource, fakeTempoDatasource]);
+    console.log("list global", pluginKind);
+    return Promise.resolve([
+      fakeDatasource,
+      fakeTempoDatasource,
+      fakeClickhouseDatasource,
+    ]);
   }
 }
 
@@ -125,10 +147,10 @@ export default function Page() {
         spec: {
           plugins: [
             {
-              pluginType: "ClickhouseQuery",
+              pluginType: "TraceQuery",
               kind: "ClickhouseTraceQuery",
               display: {
-                name: "Tempo Trace Query",
+                name: "Clickhouse Trace Query",
                 description: "",
               },
             },
@@ -146,6 +168,7 @@ export default function Page() {
       importPlugin: () => import("@perses-dev/panels-plugin"),
     },
   ]);
+  pluginLoader.getInstalledPlugins().then((e) => console.log(e));
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -160,6 +183,7 @@ export default function Page() {
     metadata: {},
     spec: {},
   } as DashboardResource;
+
   return (
     <PersesChartWrapper>
       <SnackbarProvider
@@ -185,6 +209,7 @@ export default function Page() {
                   dashboardResource={fakeDashboard}
                   datasourceApi={fakeDatasourceApi}
                 >
+                  <ViewerTest />
                   <DataQueriesProvider
                     definitions={[
                       {
@@ -193,7 +218,6 @@ export default function Page() {
                       },
                     ]}
                   >
-                    <ViewerTest />
                     <TraceTable.PanelComponent
                       traceLink={(id) =>
                         `/app/projects/${params.name}/traces/${id.traceId}`
@@ -205,19 +229,6 @@ export default function Page() {
                       spec={{}}
                     />
                   </DataQueriesProvider>
-                  <Test>
-                    <ViewerTest />
-                    <TraceTable.PanelComponent
-                      traceLink={(id) =>
-                        `/app/projects/${params.name}/traces/${id.traceId}`
-                      }
-                      contentDimensions={{
-                        width: 1200,
-                        height: 400,
-                      }}
-                      spec={{}}
-                    />
-                  </Test>
                 </DatasourceStoreProvider>
               </VariableProvider>
             </TimeRangeProvider>
@@ -229,8 +240,14 @@ export default function Page() {
 }
 
 function ViewerTest() {
-  const a = useDataQueriesContext();
-  console.log("ViewerTest", a.queryResults);
+  const { data: traceQueryPlugins, isLoading: isTraceQueryPluginLoading } =
+    useListPluginMetadata(["TraceQuery"]);
+  const a = useQueryType();
+
+  console.log("a", a("ClickhouseTraceQuery"));
+
+  console.log("plugins", traceQueryPlugins);
+
   return <></>;
 }
 function Test(props: { children: React.ReactNode }) {
@@ -245,7 +262,6 @@ function Test(props: { children: React.ReactNode }) {
       },
     },
   ]);
-  console.log("result", traceResults);
   const a = transformQueryResults(traceResults, [
     {
       kind: "TraceQuery",
@@ -257,7 +273,6 @@ function Test(props: { children: React.ReactNode }) {
       },
     },
   ]);
-  console.log("a", a);
 
   return (
     <DataQueriesContext.Provider
