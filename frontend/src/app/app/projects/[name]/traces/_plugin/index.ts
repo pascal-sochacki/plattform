@@ -1,2 +1,2 @@
-import { ClickhouseTraceQuery } from "./ClickhouseTraceQuery";
+import { ClickhouseTraceQuery } from "./Clickhouse";
 export { ClickhouseTraceQuery };

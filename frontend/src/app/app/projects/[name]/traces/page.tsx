@@ -24,6 +24,7 @@ import * as prometheusPlugin from "@perses-dev/prometheus-plugin";
 import * as tempoPlugin from "@perses-dev/tempo-plugin";
 import * as tracingGanttChartPlugin from "@perses-dev/tracing-gantt-chart-plugin";
 import * as timeseriesChartPlugin from "@perses-dev/timeseries-chart-plugin";
+import * as clickhousePlugin from "./_plugin/index";
 
 const DemoPrometheus: GlobalDatasourceResource = {
   kind: "GlobalDatasource",
@@ -107,6 +108,29 @@ export default function Page() {
       resource: timeseriesChartPlugin.getPluginModule(),
       importPlugin: () => Promise.resolve(timeseriesChartPlugin),
     },
+    {
+      resource: {
+        kind: "PluginModule",
+        metadata: {
+          name: "Clickhouse",
+          version: "0.0.1",
+        },
+        spec: {
+          plugins: [
+            {
+              kind: "TraceQuery",
+              spec: {
+                display: {
+                  name: "Clickhouse Trace Query",
+                },
+                name: "ClickhouseTraceQuery",
+              },
+            },
+          ],
+        },
+      },
+      importPlugin: () => Promise.resolve(clickhousePlugin),
+    },
   ]);
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -133,7 +157,7 @@ export default function Page() {
           pluginLoader={pluginLoader}
           defaultPluginKinds={{
             Panel: "TimeSeriesChart",
-            TraceQuery: "TempoTraceQuery",
+            TraceQuery: "ClickhouseTraceQuery",
             TimeSeriesQuery: "PrometheusTimeSeriesQuery",
           }}
         >
@@ -150,7 +174,7 @@ export default function Page() {
                   <DataQueriesProvider
                     definitions={[
                       {
-                        kind: "TempoTraceQuery",
+                        kind: "ClickhouseTraceQuery",
                         spec: { query: `c6fd67763b3935ab3099899a64c4a2de` },
                       },
                     ]}
