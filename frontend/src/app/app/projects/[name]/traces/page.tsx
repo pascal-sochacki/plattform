@@ -21,10 +21,11 @@ import {
 import { type DatasourceApi } from "@perses-dev/dashboards";
 import PersesChartWrapper from "../_components/PersesChartWrapper";
 import * as prometheusPlugin from "@perses-dev/prometheus-plugin";
+import * as tempoPlugin from "@perses-dev/tempo-plugin";
 import * as tracingGanttChartPlugin from "@perses-dev/tracing-gantt-chart-plugin";
 import * as timeseriesChartPlugin from "@perses-dev/timeseries-chart-plugin";
 
-const fakeDatasource: GlobalDatasourceResource = {
+const DemoPrometheus: GlobalDatasourceResource = {
   kind: "GlobalDatasource",
   metadata: { name: "hello" },
   spec: {
@@ -33,6 +34,20 @@ const fakeDatasource: GlobalDatasourceResource = {
       kind: "PrometheusDatasource",
       spec: {
         directUrl: "https://prometheus.demo.prometheus.io",
+      },
+    },
+  },
+};
+
+const LocalTempo: GlobalDatasourceResource = {
+  kind: "GlobalDatasource",
+  metadata: { name: "hello" },
+  spec: {
+    default: true,
+    plugin: {
+      kind: "TempoDatasource",
+      spec: {
+        directUrl: "http://localhost:3200",
       },
     },
   },
@@ -52,7 +67,10 @@ class DatasourceApiImpl implements DatasourceApi {
   ): Promise<GlobalDatasourceResource | undefined> {
     console.log("getGlobalDatasource");
     console.log(selector);
-    return Promise.resolve(fakeDatasource);
+    if (selector.kind == "PrometheusDatasource") {
+      return Promise.resolve(DemoPrometheus);
+    }
+    return Promise.resolve(LocalTempo);
   }
 
   listDatasources(
@@ -67,7 +85,7 @@ class DatasourceApiImpl implements DatasourceApi {
     pluginKind?: string,
   ): Promise<GlobalDatasourceResource[]> {
     console.log("list global", pluginKind);
-    return Promise.resolve([fakeDatasource]);
+    return Promise.resolve([DemoPrometheus]);
   }
 }
 
@@ -76,6 +94,10 @@ export default function Page() {
     {
       resource: prometheusPlugin.getPluginModule(),
       importPlugin: () => Promise.resolve(prometheusPlugin),
+    },
+    {
+      resource: tempoPlugin.getPluginModule(),
+      importPlugin: () => Promise.resolve(tempoPlugin),
     },
     {
       resource: tracingGanttChartPlugin.getPluginModule(),
@@ -111,6 +133,7 @@ export default function Page() {
           pluginLoader={pluginLoader}
           defaultPluginKinds={{
             Panel: "TimeSeriesChart",
+            TraceQuery: "TempoTraceQuery",
             TimeSeriesQuery: "PrometheusTimeSeriesQuery",
           }}
         >
@@ -127,8 +150,8 @@ export default function Page() {
                   <DataQueriesProvider
                     definitions={[
                       {
-                        kind: "PrometheusTimeSeriesQuery",
-                        spec: { query: `up{}` },
+                        kind: "TempoTraceQuery",
+                        spec: { query: `c6fd67763b3935ab3099899a64c4a2de` },
                       },
                     ]}
                   >
@@ -141,7 +164,7 @@ export default function Page() {
                         spec: {
                           display: { name: "Example Panel" },
                           plugin: {
-                            kind: "TimeSeriesChart",
+                            kind: "TracingGanttChart",
                             spec: {
                               legend: {
                                 position: "bottom",
